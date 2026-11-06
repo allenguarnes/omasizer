@@ -5,7 +5,7 @@
   "version": "1.1.0",
   "author": "Allen Guarnes",
   "license": "MIT",
-  "description": "Resize floating windows to preset sizes or snap them into zone layouts, like Sizer and FancyZones. Right-click a titlebar or press Super+Alt+Z. Includes a visual zone editor.",
+  "description": "An essential companion for Omarchy's floating layout: snap windows into zones or resize them to preset sizes, like FancyZones and Sizer. Right-click a titlebar or press Super+Alt+Z.",
   "kinds": [
     "overlay",
     "service"

@@ -1,8 +1,8 @@
 # OmaSizer
 
-**Preset window sizes and snap zones for [Omarchy](https://omarchy.org).**
+**An essential companion for [Omarchy](https://omarchy.org)'s floating layout.**
 
-OmaSizer brings the window sizing tools Windows and KDE users have long had, [Sizer](https://www.brianapps.net/sizer4/), [KSizer](https://github.com/allenguarnes/KSizer) and PowerToys [FancyZones](https://learn.microsoft.com/en-us/windows/powertoys/fancyzones), to Omarchy's floating workspaces. Right-click a window's titlebar, pick a zone or a size, and the window lands exactly there.
+Omarchy 4.5's floating workspaces give every window a titlebar and the freedom to go anywhere, but no quick way to give a window an exact size or a tidy spot. OmaSizer fills that gap with what Windows and KDE users have long relied on: zones like PowerToys [FancyZones](https://learn.microsoft.com/en-us/windows/powertoys/fancyzones), and exact sizes like [Sizer](https://www.brianapps.net/sizer4/) and [KSizer](https://github.com/allenguarnes/KSizer). Right-click a window's titlebar, pick a zone or a size, and the window lands exactly there.
 
 <p align="center">
   <img src="docs/screenshots/rightclick.png" alt="The OmaSizer menu open over a window after right-clicking its titlebar" width="640">
