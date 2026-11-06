@@ -23,6 +23,7 @@ OmaSizer brings the window sizing tools Windows and KDE users have long had, [Si
 - Omarchy 4.5 or later.
 - The right-click menu works on floating windows. The titlebar right-click needs Omarchy's floating workspace layout, which draws the titlebars.
 - The keyboard shortcut works on any window. A tiled window is floated before it's resized or moved into a zone.
+- Uses `bash`, `jq` and Hyprland's `hyprctl`, which come with Omarchy. Nothing else needs to be installed, and nothing runs with elevated privileges.
 
 ## Install
 
