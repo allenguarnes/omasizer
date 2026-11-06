@@ -1,0 +1,110 @@
+#!/bin/bash
+
+# Resize the focused (or given) Hyprland window to a size, or place it in a zone.
+#   omasizer <width> <height> [window-address]
+#   omasizer --zone <x> <y> <width> <height> [window-address]
+# A size is in logical pixels; the center and clamp settings come from OmaSizer's
+# entry in ~/.config/omarchy/shell.json. A zone is a rectangle given as fractions
+# (0 to 1) of the monitor's usable area, laid out with the gaps saved in settings,
+# or with Hyprland's own gaps like tiling until they are saved.
+
+set -euo pipefail
+
+usage() {
+  echo "Usage: omasizer <width> <height> [window-address]" >&2
+  echo "       omasizer --zone <x> <y> <width> <height> [window-address]" >&2
+  exit 1
+}
+
+fraction='^(0(\.[0-9]+)?|1(\.0+)?|\.[0-9]+)$'
+
+if [[ ${1:-} == --zone ]]; then
+  mode=zone
+  zone_x=${2:-} zone_y=${3:-} zone_w=${4:-} zone_h=${5:-} address=${6:-}
+  for value in "$zone_x" "$zone_y" "$zone_w" "$zone_h"; do
+    [[ $value =~ $fraction ]] || usage
+  done
+else
+  mode=size
+  width=${1:-} height=${2:-} address=${3:-}
+  [[ $width =~ ^[1-9][0-9]*$ && $height =~ ^[1-9][0-9]*$ ]] || usage
+fi
+
+if [[ -n $address ]]; then
+  client=$(hyprctl clients -j | jq -c --arg a "$address" 'first(.[] | select(.address == $a)) // empty')
+else
+  client=$(hyprctl activewindow -j | jq -c 'select(.address != null)')
+fi
+[[ -n $client ]] || { echo "omasizer: no window to resize" >&2; exit 1; }
+
+shell_config=${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/shell.json
+read -r center clamp outer_gap inner_gap < <(jq -r 'first(.plugins[]? | select(.id == "omasizer")) // {}
+  | def gap: if type == "number" and . == floor and . >= 0 and . <= 200 then . else "-" end;
+  "\(.center != false) \(.clamp != false) \(.outerGap | gap) \(.innerGap | gap)"' "$shell_config" 2>/dev/null || echo "true true - -")
+
+read -r address floating fullscreen monitor x y titlebar < <(jq -r '
+  "\(.address) \(.floating) \(.fullscreen) \(.monitor) \(.at[0]) \(.at[1]) \(any(.tags[]?; . == "omarchy-floating-workspace" or . == "omarchy-floating-workspace*"))"' <<<"$client")
+window="address:$address"
+
+# Usable logical area of the window's monitor: rotated monitors swap axes, the bar's reserved space is excluded.
+read -r area_x area_y area_w area_h < <(hyprctl monitors -j | jq -r --argjson id "$monitor" '
+  first(.[] | select(.id == $id))
+  | (if .transform % 2 == 1 then [.height, .width] else [.width, .height] end) as $px
+  | "\(.x + .reserved[0]) \(.y + .reserved[1]) \(($px[0] / .scale | floor) - .reserved[0] - .reserved[2]) \(($px[1] / .scale | floor) - .reserved[1] - .reserved[3])"')
+
+option_numbers() {
+  hyprctl getoption "$1" -j 2>/dev/null | jq -r '(.css // .int // 0 | tostring)' || echo 0
+}
+
+if [[ $mode == zone ]]; then
+  # The zone's frame keeps the outer gap from the screen edges and half the inner
+  # gap on each side facing another zone, as tiled windows do with gaps_out and
+  # gaps_in. The window's border and, on floating
+  # workspaces, its titlebar are drawn outside its reported geometry, so both come
+  # out of the frame.
+  read -r x y width height < <(jq -rn \
+    --argjson area "[$area_x, $area_y, $area_w, $area_h]" \
+    --argjson zone "[$zone_x, $zone_y, $zone_w, $zone_h]" \
+    --arg outer "$([[ $outer_gap != - ]] && echo "$outer_gap" || option_numbers general:gaps_out)" \
+    --arg inner "$([[ $inner_gap != - ]] && jq -n "$inner_gap / 2" || option_numbers general:gaps_in)" \
+    --argjson border "$(option_numbers general:border_size)" \
+    --argjson bar "$([[ $titlebar == true ]] && option_numbers plugin:hyprbars:bar_height || echo 0)" '
+    def sides: [splits(" +") | select(. != "") | tonumber] | if length == 1 then [.[0], .[0], .[0], .[0]] elif length == 2 then [.[0], .[1], .[0], .[1]] else . end;
+    ($outer | sides) as [$gt, $gr, $gb, $gl]
+    | ($inner | sides) as [$it, $ir, $ib, $il]
+    | ($area[2] - $gl - $gr) as $w | ($area[3] - $gt - $gb) as $h
+    | ($area[0] + $gl + $zone[0] * $w + (if $zone[0] > 0 then $il else 0 end)) as $left
+    | ($area[0] + $gl + ($zone[0] + $zone[2]) * $w - (if $zone[0] + $zone[2] < 0.999 then $ir else 0 end)) as $right
+    | ($area[1] + $gt + $zone[1] * $h + (if $zone[1] > 0 then $it else 0 end)) as $top
+    | ($area[1] + $gt + ($zone[1] + $zone[3]) * $h - (if $zone[1] + $zone[3] < 0.999 then $ib else 0 end)) as $bottom
+    | [$left + $border, $top + $border + $bar, $right - $left - 2 * $border, $bottom - $top - 2 * $border - $bar]
+    | map(round) | "\(.[0]) \(.[1]) \([.[2], 1] | max) \([.[3], 1] | max)"')
+elif [[ $clamp == true ]]; then
+  # Oversized presets shrink to fit the screen, like KSizer's ClampToArea.
+  (( width > area_w )) && width=$area_w
+  (( height > area_h )) && height=$area_h
+fi
+
+hypr_dispatch() {
+  local lua="$1"
+  shift
+
+  hyprctl dispatch "$lua" >/dev/null 2>&1 || hyprctl dispatch "$@" >/dev/null
+}
+
+hypr_dispatch "hl.dsp.focus({ window = \"$window\" })" focuswindow "$window"
+
+case $fullscreen in
+1) hypr_dispatch 'hl.dsp.window.fullscreen({ mode = "maximized" })' fullscreen 1 ;;
+2) hypr_dispatch 'hl.dsp.window.fullscreen({ mode = "fullscreen" })' fullscreen 0 ;;
+esac
+
+[[ $floating == true ]] || hypr_dispatch "hl.dsp.window.float({ window = \"$window\", action = \"enable\" })" setfloating "$window"
+
+hypr_dispatch "hl.dsp.window.resize({ window = \"$window\", x = $width, y = $height })" resizewindowpixel exact "$width" "$height,$window"
+# Hyprland resizes a floating window around its middle, so keeping its place means moving it back.
+if [[ $mode == size && $center == true ]]; then
+  hypr_dispatch "hl.dsp.window.center({ window = \"$window\" })" centerwindow "$window"
+else
+  hypr_dispatch "hl.dsp.window.move({ window = \"$window\", x = $x, y = $y })" movewindowpixel exact "$x" "$y,$window"
+fi

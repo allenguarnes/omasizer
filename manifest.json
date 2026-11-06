@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "omasizer",
+  "name": "OmaSizer",
+  "version": "0.1.0",
+  "author": "Allen Guarnes",
+  "license": "MIT",
+  "description": "Resize the focused window to a preset size and center it, like Sizer and KSizer.",
+  "kinds": ["overlay"],
+  "entryPoints": {
+    "overlay": "OmaSizer.qml"
+  }
+}

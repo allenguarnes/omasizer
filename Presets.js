@@ -1,0 +1,167 @@
+// OmaSizer's settings live in its entry in ~/.config/omarchy/shell.json:
+// { "id": "omasizer", "presets": [{ label, width, height }], "center": true, "clamp": true,
+//   "titlebarClick": true, "borderClick": true,
+//   "layouts": [{ name, zones: [[x, y, width, height], ...] }],
+//   "outerGap": 10, "innerGap": 10 }
+// The gaps are logical pixels: from the screen edges, and between two zones.
+// Until they are saved, zones use Hyprland's own gaps_out and twice gaps_in.
+// Zones are fractions (0 to 1) of the monitor's usable area.
+
+var DEFAULTS = [
+  { label: "4:3", width: 800, height: 600 },
+  { label: "4:3", width: 1024, height: 768 },
+  { label: "16:9", width: 1280, height: 720 },
+  { label: "16:9", width: 1600, height: 900 },
+  { label: "16:9", width: 1920, height: 1080 },
+  { label: "21:9", width: 2560, height: 1080 }
+]
+
+// Side by side is "columns", stacked is "rows".
+var DEFAULT_LAYOUTS = [
+  { name: "50:50 columns", zones: [[0, 0, 0.5, 1], [0.5, 0, 0.5, 1]] },
+  { name: "50:50 rows", zones: [[0, 0, 1, 0.5], [0, 0.5, 1, 0.5]] },
+  { name: "33:33:33 columns", zones: [[0, 0, 1 / 3, 1], [1 / 3, 0, 1 / 3, 1], [2 / 3, 0, 1 / 3, 1]] },
+  { name: "33:33:33 rows", zones: [[0, 0, 1, 1 / 3], [0, 1 / 3, 1, 1 / 3], [0, 2 / 3, 1, 1 / 3]] },
+  { name: "75:25 main + side", zones: [[0, 0, 0.75, 1], [0.75, 0, 0.25, 1]] },
+  { name: "25:75 side + main", zones: [[0, 0, 0.25, 1], [0.25, 0, 0.75, 1]] },
+  { name: "25:50:25 main + sides", zones: [[0, 0, 0.25, 1], [0.25, 0, 0.5, 1], [0.75, 0, 0.25, 1]] },
+  { name: "Quadrants", zones: [[0, 0, 0.5, 0.5], [0.5, 0, 0.5, 0.5], [0, 0.5, 0.5, 0.5], [0.5, 0.5, 0.5, 0.5]] }
+]
+
+var MAX_LAYOUTS = 20
+var MAX_ZONES = 16
+var MAX_PRESETS = 50
+var MAX_GAP = 200
+
+// A whole number of pixels from 0 to 200, or null when unset.
+function gap(value) {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= MAX_GAP ? value : null
+}
+var MAX_SIZE = 16384
+
+function validSize(value) {
+  var n = Number(value)
+  return Number.isInteger(n) && n >= 1 && n <= MAX_SIZE
+}
+
+// Keep the presets with whole positive sizes, with labels cut to 40 characters.
+function sanitize(list) {
+  if (!Array.isArray(list)) return []
+  var presets = []
+  for (var i = 0; i < list.length && presets.length < MAX_PRESETS; i++) {
+    var p = list[i] || {}
+    if (!validSize(p.width) || !validSize(p.height)) continue
+    presets.push({ label: String(p.label || "").slice(0, 40), width: Number(p.width), height: Number(p.height) })
+  }
+  return presets
+}
+
+// A zone is [x, y, width, height] with every edge inside the screen and a real size.
+function validZone(zone) {
+  if (!Array.isArray(zone) || zone.length !== 4) return false
+  for (var i = 0; i < 4; i++)
+    if (typeof zone[i] !== "number" || !isFinite(zone[i]) || zone[i] < 0 || zone[i] > 1) return false
+  return zone[2] > 0 && zone[3] > 0 && zone[0] + zone[2] <= 1.0001 && zone[1] + zone[3] <= 1.0001
+}
+
+// Keep the layouts with 1 to 16 valid zones, with names cut to 40 characters.
+function sanitizeLayouts(list) {
+  if (!Array.isArray(list)) return []
+  var layouts = []
+  for (var i = 0; i < list.length && layouts.length < MAX_LAYOUTS; i++) {
+    var layout = list[i] || {}
+    var zones = Array.isArray(layout.zones) ? layout.zones : []
+    if (zones.length < 1 || zones.length > MAX_ZONES || !zones.every(validZone)) continue
+    layouts.push({ name: String(layout.name || "").slice(0, 40), zones: zones.map(function(z) { return z.slice() }) })
+  }
+  return layouts
+}
+
+// A copy of `list` with the item at `from` moved to `to`; the same list when either is out of range.
+function moveItem(list, from, to) {
+  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list
+  var next = list.slice()
+  next.splice(to, 0, next.splice(from, 1)[0])
+  return next
+}
+
+function defaultLayouts() {
+  return sanitizeLayouts(DEFAULT_LAYOUTS)
+}
+
+// Zone editing. Edges snap to a grid of 24ths, which holds halves, thirds, quarters,
+// sixths and eighths exactly; a zone is never narrower or shorter than one step.
+var GRID = 24
+var MIN_ZONE = 1 / GRID
+
+function snap(value) {
+  return Math.round(value * GRID) / GRID
+}
+
+function clamp(value, low, high) {
+  return Math.max(low, Math.min(high, value))
+}
+
+// Six decimals keep saved zones short while still meeting exactly at thirds.
+function tidy(zone) {
+  return zone.map(function(v) { return Math.round(v * 1e6) / 1e6 })
+}
+
+// Drag a zone by (dx, dy), fractions of the screen. `edges` names the edges
+// being dragged ({ left, right, top, bottom }); with none, the whole zone moves.
+function dragZone(zone, edges, dx, dy) {
+  var left = zone[0], top = zone[1], right = zone[0] + zone[2], bottom = zone[1] + zone[3]
+  if (!edges.left && !edges.right && !edges.top && !edges.bottom) {
+    var x = clamp(snap(left + dx), 0, 1 - zone[2])
+    var y = clamp(snap(top + dy), 0, 1 - zone[3])
+    return tidy([x, y, zone[2], zone[3]])
+  }
+  if (edges.left) left = clamp(snap(left + dx), 0, right - MIN_ZONE)
+  if (edges.right) right = clamp(snap(right + dx), left + MIN_ZONE, 1)
+  if (edges.top) top = clamp(snap(top + dy), 0, bottom - MIN_ZONE)
+  if (edges.bottom) bottom = clamp(snap(bottom + dy), top + MIN_ZONE, 1)
+  return tidy([left, top, right - left, bottom - top])
+}
+
+// Split zone `index` into two halves, side by side ("columns") or stacked
+// ("rows"); null when the halves would be smaller than a grid step.
+function splitZone(zones, index, direction) {
+  var z = zones[index]
+  if (!z || zones.length >= MAX_ZONES) return null
+  var halves = direction === "columns"
+    ? [[z[0], z[1], z[2] / 2, z[3]], [z[0] + z[2] / 2, z[1], z[2] / 2, z[3]]]
+    : [[z[0], z[1], z[2], z[3] / 2], [z[0], z[1] + z[3] / 2, z[2], z[3] / 2]]
+  if (halves[0][2] < MIN_ZONE - 1e-9 || halves[0][3] < MIN_ZONE - 1e-9) return null
+  return zones.slice(0, index).concat(halves.map(tidy), zones.slice(index + 1))
+}
+
+// A zone typed as percentages, or null unless it fits the screen and is at least a grid step.
+function zoneFromPercent(x, y, width, height) {
+  var zone = [x, y, width, height].map(function(v) { return Number(v) / 100 })
+  if (!validZone(zone) || zone[2] < MIN_ZONE - 1e-9 || zone[3] < MIN_ZONE - 1e-9) return null
+  return tidy(zone)
+}
+
+function percent(value) {
+  return String(Math.round(value * 10000) / 100)
+}
+
+function fromShellConfig(text) {
+  var entry = {}
+  try {
+    var plugins = JSON.parse(text).plugins
+    for (var i = 0; Array.isArray(plugins) && i < plugins.length; i++)
+      if (plugins[i] && plugins[i].id === "omasizer") entry = plugins[i]
+  } catch (e) {}
+
+  return {
+    presets: Array.isArray(entry.presets) ? sanitize(entry.presets) : DEFAULTS.slice(),
+    center: entry.center !== false,
+    clamp: entry.clamp !== false,
+    titlebarClick: entry.titlebarClick !== false,
+    borderClick: entry.borderClick !== false,
+    layouts: Array.isArray(entry.layouts) ? sanitizeLayouts(entry.layouts) : defaultLayouts(),
+    outerGap: gap(entry.outerGap),
+    innerGap: gap(entry.innerGap)
+  }
+}
