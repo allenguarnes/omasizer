@@ -1,0 +1,15 @@
+# Qt's compiled QML cache and the QML language server's per-directory config
+*.qmlc
+*.jsc
+.qmlls.ini
+
+# Editor and OS clutter
+*~
+*.swp
+.DS_Store
+.vscode/
+.idea/
+
+# Local agent settings
+CLAUDE.local.md
+.claude/
