@@ -23,6 +23,10 @@ Column {
   property bool clamp: true
   property bool titlebarClick: true
   property bool borderClick: true
+  property string shortcut: ""
+  // OmaSizer's service: it registers the shortcut and knows what else is bound.
+  property var service: null
+  readonly property string shortcutHolder: root.service && root.shortcut ? root.service.conflictFor(root.shortcut) || "" : ""
   property var layouts: []
   // The tallest the form may be before it scrolls.
   property real maxHeight: 100000
@@ -55,7 +59,7 @@ Column {
 
   function trySave() {
     if (root.valid) root.saved({ presets: Presets.sanitize(root.draft), center: root.center, clamp: root.clamp,
-      titlebarClick: root.titlebarClick, borderClick: root.borderClick, layouts: root.layouts,
+      titlebarClick: root.titlebarClick, borderClick: root.borderClick, shortcut: root.shortcut, layouts: root.layouts,
       outerGap: Number(root.outerGap), innerGap: Number(root.innerGap) })
   }
 
@@ -73,6 +77,8 @@ Column {
     root.clamp = settings.clamp
     root.titlebarClick = settings.titlebarClick
     root.borderClick = settings.borderClick
+    root.shortcut = settings.shortcut
+    if (root.service) root.service.refreshBinds()
     root.layouts = settings.layouts
     root.editingIndex = -2
     root.outerGap = settings.outerGap === null ? "" : String(settings.outerGap)
@@ -490,7 +496,53 @@ Column {
 
     SectionTitle {
       topPadding: Style.space(10)
-      text: root.strings.t("settings.rightClick")
+      text: root.strings.t("settings.openMenu")
+    }
+
+    Item {
+      width: root.width
+      height: shortcutField.height
+
+      Label {
+        anchors.left: parent.left
+        anchors.right: shortcutField.left
+        anchors.verticalCenter: parent.verticalCenter
+        text: root.strings.t("settings.shortcut")
+        elide: Text.ElideRight
+      }
+
+      ShortcutField {
+        id: shortcutField
+        anchors.right: defaultShortcut.left
+        anchors.rightMargin: Style.spacing.sm
+        shortcut: root.shortcut
+        offText: root.strings.t("settings.shortcutOff")
+        listeningText: root.strings.t("settings.shortcutListening")
+        onEdited: function(next) { root.shortcut = next }
+      }
+
+      Button {
+        id: defaultShortcut
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        focusable: true
+        bordered: true
+        iconText: Icons.restore
+        tooltipText: root.strings.t("settings.shortcutDefault")
+        enabled: root.shortcut !== Presets.DEFAULT_SHORTCUT
+        opacity: enabled ? 1 : 0.4
+        onClicked: root.shortcut = Presets.DEFAULT_SHORTCUT
+      }
+    }
+
+    Label {
+      width: parent.width
+      wrapMode: Text.WordWrap
+      font.pixelSize: Style.font.bodySmall
+      color: root.shortcutHolder ? Commons.Color.urgent : Commons.Color.menu.text
+      opacity: root.shortcutHolder ? 1 : 0.6
+      text: root.shortcutHolder ? root.strings.t("settings.shortcutTaken").arg(root.shortcutHolder)
+        : root.strings.t("settings.shortcutHint")
     }
 
     SwitchRow { key: "titlebarClick"; text: root.strings.t("settings.titlebarClick") }

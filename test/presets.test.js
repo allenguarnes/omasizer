@@ -43,7 +43,7 @@ assert.deepStrictEqual(read({ plugins: [{ id: "omasizer", layouts: [] }] }).layo
 assert.deepStrictEqual(read({ plugins: [{ id: "omasizer", center: false, clamp: false, titlebarClick: false, borderClick: false, presets: [
   { width: 800, height: 600 }, { width: "x", height: 1 }, { width: -5, height: 5 }, { width: 1.5, height: 2 },
   { width: 20000, height: 5 }, { label: "Big", width: "1920", height: 1080 }
-] }] }), { presets: [{ label: "", width: 800, height: 600 }, { label: "Big", width: 1920, height: 1080 }], center: false, clamp: false, titlebarClick: false, borderClick: false, layouts: read({}).layouts, outerGap: null, innerGap: null })
+] }] }), { presets: [{ label: "", width: 800, height: 600 }, { label: "Big", width: 1920, height: 1080 }], center: false, clamp: false, titlebarClick: false, borderClick: false, layouts: read({}).layouts, outerGap: null, innerGap: null, shortcut: "SUPER + ALT + Z" })
 assert.deepStrictEqual(read({ plugins: [{ id: "omasizer", presets: [] }] }).presets, [])
 assert.strictEqual(plain(ctx.sanitize(Array(80).fill({ width: 1, height: 1 }))).length, 50)
 
@@ -77,5 +77,25 @@ assert.deepStrictEqual(plain(ctx.moveItem(["a", "b", "c", "d"], 3, 0)), ["d", "a
 assert.deepStrictEqual(plain(ctx.moveItem(["a", "b"], 1, 2)), ["a", "b"])
 assert.deepStrictEqual(plain(ctx.moveItem(["a", "b"], -1, 0)), ["a", "b"])
 assert.deepStrictEqual(plain(ctx.defaultLayouts()), read({}).layouts)
+
+// Shortcuts: canonical form, a strict whitelist, and conflicts read from `hyprctl -j binds`.
+assert.strictEqual(read({}).shortcut, "SUPER + ALT + Z")
+assert.strictEqual(read({ plugins: [{ id: "omasizer", shortcut: "" }] }).shortcut, "")
+assert.strictEqual(read({ plugins: [{ id: "omasizer", shortcut: "ctrl+super+F5" }] }).shortcut, "SUPER + CTRL + F5")
+assert.strictEqual(read({ plugins: [{ id: "omasizer", shortcut: "Z" }] }).shortcut, "SUPER + ALT + Z")
+for (const bad of ["Z", "SUPER", "SUPER + SUPER + Z", "HYPER + Z", "SUPER + ALT + Z + X", 'SUPER + "); os.exit() --', "SUPER + mouse:272", 42, null])
+  assert.strictEqual(ctx.normalizeShortcut(bad), null, String(bad))
+const binds = [
+  { modmask: 72, key: "Z", description: "OmaSizer: open the menu" },
+  { modmask: 64, key: "Return", description: "Terminal" },
+  { modmask: 0, key: "mouse:273", mouse: true },
+  { modmask: 76, key: "Z", description: "", dispatcher: "exec", arg: "zoom" },
+  { modmask: 64, key: "T", submap: "resize", description: "In a submap" }
+]
+assert.strictEqual(ctx.bindConflict(binds, "SUPER + ALT + Z"), null)
+assert.strictEqual(ctx.bindConflict(binds, "SUPER + RETURN"), "Terminal")
+assert.strictEqual(ctx.bindConflict(binds, "SUPER + CTRL + ALT + Z"), "exec zoom")
+assert.strictEqual(ctx.bindConflict(binds, "SUPER + T"), null)
+assert.strictEqual(ctx.bindConflict(binds, ""), null)
 
 console.log("ok")

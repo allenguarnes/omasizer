@@ -16,6 +16,8 @@ Item {
 
   property var shell: null
   property var manifest: null
+  // OmaSizer's service, handed over by the shell; it registers the keyboard shortcut.
+  property var service: null
 
   property bool opened: false
   property string view: "menu"
@@ -390,6 +392,7 @@ Item {
         strings: strings
         aspect: panel.height / Math.max(1, panel.width)
         maxHeight: panel.height - Style.gapsOut * 2 - root.contentMargin * 2
+        service: root.service
         onSaved: function(next) { root.save(next) }
         onCancelled: {
           root.view = "menu"

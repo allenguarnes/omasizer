@@ -2,14 +2,16 @@
   "schemaVersion": 1,
   "id": "omasizer",
   "name": "OmaSizer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Allen Guarnes",
   "license": "MIT",
   "description": "Resize floating windows to preset sizes or snap them into zone layouts, like Sizer and FancyZones. Right-click a titlebar or press Super+Alt+Z. Includes a visual zone editor.",
   "kinds": [
-    "overlay"
+    "overlay",
+    "service"
   ],
   "entryPoints": {
-    "overlay": "OmaSizer.qml"
+    "overlay": "OmaSizer.qml",
+    "service": "Service.qml"
   }
 }

@@ -47,4 +47,25 @@ assert(M.is_click({ x = 10, y = 10 }, { x = 14, y = 6 }))
 assert(not M.is_click({ x = 10, y = 10 }, { x = 15, y = 10 }))
 assert(not M.is_click({ x = 10, y = 10 }, { x = 10, y = 40 }))
 
+-- Registering again changes only what differs, and unbinds only OmaSizer's own shortcut.
+local calls = {}
+hl = {
+  bind = function(keys) calls[#calls + 1] = "bind " .. keys end,
+  unbind = function(keys) calls[#calls + 1] = "unbind " .. keys end,
+  dsp = { exec_cmd = function(command) return command end },
+}
+local function register(shortcut)
+  calls = {}
+  M.register(shortcut)
+  return table.concat(calls, ", ")
+end
+_G.omasizer_state = nil
+assert(register("SUPER + ALT + Z") == "bind mouse:273, bind mouse:273, bind SUPER + ALT + Z")
+assert(register("SUPER + ALT + Z") == "")
+assert(register("SUPER + CTRL + F5") == "unbind SUPER + ALT + Z, bind SUPER + CTRL + F5")
+assert(register("") == "unbind SUPER + CTRL + F5")
+assert(register("") == "")
+assert(register("SUPER + O") == "bind SUPER + O")
+hl = nil
+
 print("ok")

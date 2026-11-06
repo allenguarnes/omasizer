@@ -12,8 +12,8 @@
   "settings.innerGap": "Between windows",
   "settings.center": "Center the window after resizing",
   "settings.clamp": "Shrink presets that don't fit the screen",
-  "settings.titlebarClick": "On a window's titlebar",
-  "settings.borderClick": "On a window's resize border",
+  "settings.titlebarClick": "Right-click a window's titlebar",
+  "settings.borderClick": "Right-click a window's resize border",
   "settings.invalid": "Sizes must be 1–16384, gaps 0–200",
   "settings.cancel": "Cancel",
   "settings.save": "Save",
@@ -43,5 +43,11 @@
   "settings.px": "px",
   "editor.zones": "Zones",
   "editor.zonesHint": "Drag to move · edges to resize · snaps to 1/24",
-  "settings.rightClick": "Right-click to open"
+  "settings.openMenu": "Open the menu",
+  "settings.shortcut": "Keyboard shortcut",
+  "settings.shortcutOff": "Off",
+  "settings.shortcutListening": "Press a shortcut…",
+  "settings.shortcutDefault": "Use Super + Alt + Z",
+  "settings.shortcutTaken": "Already used by “%1”. OmaSizer leaves it alone; pick another shortcut.",
+  "settings.shortcutHint": "Click the field and press a combination with at least one modifier. Backspace turns it off."
 }

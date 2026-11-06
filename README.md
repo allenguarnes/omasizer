@@ -27,19 +27,13 @@ OmaSizer brings the window sizing tools Windows and KDE users have long had, [Si
 
 ## Install
 
-1. Add and enable the plugin:
+```bash
+omarchy plugin add https://github.com/allenguarnes/omasizer.git --enable
+```
 
-   ```bash
-   omarchy plugin add https://github.com/allenguarnes/omasizer.git --enable
-   ```
+That's all. OmaSizer registers its keyboard shortcut and right-click hook with Hyprland itself, at runtime, every time the shell starts and after every Hyprland config reload. It never edits your config files.
 
-2. Load its keybinding and right-click hook by adding this line to `~/.config/hypr/bindings.lua`:
-
-   ```lua
-   dofile(os.getenv("HOME") .. "/.config/omarchy/plugins/omasizer/hypr/omasizer.lua")
-   ```
-
-   Hyprland reloads its config when you save, so the shortcut and right-click work right away.
+If <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>Z</kbd> is already bound to something else, OmaSizer leaves your binding alone, tells you with a notification, and lets you pick another shortcut in its settings.
 
 ## Usage
 
@@ -78,7 +72,7 @@ Choose **Settings** at the bottom of the menu, or press <kbd>S</kbd>.
 - **Size presets:** add, edit, reorder and remove sizes. A new preset starts at the size of the window you right-clicked. This section also has the switches for centering the window after resizing and shrinking presets that don't fit the screen.
 - **Zone layouts:** click a layout to edit it, or use **New layout**. To reorder, drag one layout onto another or press <kbd>Alt</kbd> + <kbd>←</kbd>/<kbd>→</kbd>. **Restore defaults** brings back the built-in layouts.
 - **Zone gaps:** set the space at the screen edges and between windows. These start from Omarchy's own spacing; once you save, OmaSizer keeps your values.
-- **Right-click to open:** turn the titlebar and resize-border right-click on or off.
+- **Open the menu:** record a different keyboard shortcut (click the field and press the keys; <kbd>Backspace</kbd> turns it off), and turn the titlebar and resize-border right-click on or off. If the shortcut you pick is already in use, settings say by what, and OmaSizer won't take it over.
 
 Changes take effect when you press **Save**. **Cancel** or <kbd>Esc</kbd> discards them.
 
@@ -126,7 +120,8 @@ Settings are stored in OmaSizer's entry in `~/.config/omarchy/shell.json`. Anyth
   "center": true,
   "clamp": true,
   "titlebarClick": true,
-  "borderClick": true
+  "borderClick": true,
+  "shortcut": "SUPER + ALT + Z"
 }
 ```
 
@@ -137,6 +132,7 @@ Settings are stored in OmaSizer's entry in `~/.config/omarchy/shell.json`. Anyth
 | `outerGap`, `innerGap` | Zone gaps in pixels, at the screen edges and between windows. Unset, they follow Hyprland's `gaps_out` and twice its `gaps_in`. |
 | `center`, `clamp` | Center a resized window; shrink presets larger than the screen. |
 | `titlebarClick`, `borderClick` | Whether a right-click on a titlebar or a resize border opens the menu. |
+| `shortcut` | The keyboard shortcut, as modifiers and one key (`"SUPER + ALT + Z"`), or `""` for none. |
 
 ## Known limitations
 
@@ -150,7 +146,9 @@ Settings are stored in OmaSizer's entry in `~/.config/omarchy/shell.json`. Anyth
 omarchy plugin remove omasizer
 ```
 
-Then remove the `dofile(...)` line from `~/.config/hypr/bindings.lua`.
+Nothing is left in your config. The shortcut and right-click hook disappear at the next Hyprland config reload or login.
+
+If you installed OmaSizer 1.0 and added its `dofile(...)` line to `~/.config/hypr/bindings.lua`, you can remove that line now. Leaving it in place is harmless.
 
 ## Development
 
@@ -167,7 +165,8 @@ omarchy plugin validate .
 | `Settings.qml`, `LayoutEditor.qml` | The settings screen and the zone editor |
 | `Presets.js` | Settings parsing, defaults, validation and zone math |
 | `bin/omasizer` | Resizes and places windows through `hyprctl` |
-| `hypr/omasizer.lua` | The keybinding and the right-click hook |
+| `Service.qml` | Registers the shortcut and right-click hook with Hyprland, and checks for conflicts |
+| `hypr/omasizer.lua` | The keybinding and the right-click hook, as loaded into Hyprland |
 
 ## Credits
 

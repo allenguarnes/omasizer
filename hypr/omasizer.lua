@@ -1,11 +1,18 @@
--- OmaSizer for Hyprland: Super + Alt + Z opens the preset menu for the focused
--- window, and a right-click on a floating window's titlebar (its buttons
--- included) or its resize border opens it at the cursor for that window.
+-- OmaSizer for Hyprland: a keyboard shortcut (Super + Alt + Z by default) opens
+-- the menu for the focused window, and a right-click on a floating window's
+-- titlebar (its buttons included) or its resize border opens it at the cursor
+-- for that window.
 --
--- Load it from ~/.config/hypr/bindings.lua:
---   dofile(os.getenv("HOME") .. "/.config/omarchy/plugins/omasizer/hypr/omasizer.lua")
+-- OmaSizer's shell service loads this file with `hyprctl eval` when the shell
+-- starts and after every config reload, first setting `omasizer_shortcut` to
+-- the shortcut to bind, or "" for none. Loaded from bindings.lua instead, the
+-- default shortcut applies. Loading it again only changes what differs.
 
 local M = {}
+
+M.DEFAULT_SHORTCUT = "SUPER + ALT + Z"
+-- Marks the binding in `hyprctl binds`, so the service can tell it from others; Presets.js uses the same text.
+M.DESCRIPTION = "OmaSizer: open the menu"
 
 local WORKSPACE_TAG = "omarchy-floating-workspace" -- windows Omarchy's floating mode gives titlebars
 
@@ -102,11 +109,36 @@ local function on_right_release()
   hl.exec_cmd("omarchy-shell shell summon omasizer '" .. payload .. "'")
 end
 
+-- Hyprland keeps this table until its config reloads, which also drops these binds.
+function M.register(shortcut)
+  local state = _G.omasizer_state or {}
+  _G.omasizer_state = state
+
+  if not state.mouse then
+    -- Non-consuming, so every right-click still reaches the app under it.
+    hl.bind("mouse:273", on_right_press, { non_consuming = true })
+    hl.bind("mouse:273", on_right_release, { non_consuming = true, release = true, transparent = true, ignore_mods = true })
+    state.mouse = true
+  end
+
+  if state.shortcut ~= shortcut then
+    -- Only a shortcut this file bound is ever unbound; the service never passes one that is in use.
+    if state.shortcut and state.shortcut ~= "" then
+      hl.unbind(state.shortcut)
+    end
+    if shortcut ~= "" then
+      hl.bind(shortcut, hl.dsp.exec_cmd("omarchy-shell shell toggle omasizer"), { description = M.DESCRIPTION })
+    end
+    state.shortcut = shortcut
+  end
+end
+
 if hl and hl.bind then
-  hl.bind("SUPER + ALT + Z", hl.dsp.exec_cmd("omarchy-shell shell toggle omasizer"), { description = "Resize window to preset" })
-  -- Non-consuming, so every right-click still reaches the app under it.
-  hl.bind("mouse:273", on_right_press, { non_consuming = true })
-  hl.bind("mouse:273", on_right_release, { non_consuming = true, release = true, transparent = true, ignore_mods = true })
+  local shortcut = _G.omasizer_shortcut
+  if shortcut == nil then
+    shortcut = M.DEFAULT_SHORTCUT
+  end
+  M.register(shortcut)
 end
 
 return M

@@ -2,7 +2,7 @@
 // { "id": "omasizer", "presets": [{ label, width, height }], "center": true, "clamp": true,
 //   "titlebarClick": true, "borderClick": true,
 //   "layouts": [{ name, zones: [[x, y, width, height], ...] }],
-//   "outerGap": 10, "innerGap": 10 }
+//   "outerGap": 10, "innerGap": 10, "shortcut": "SUPER + ALT + Z" }
 // The gaps are logical pixels: from the screen edges, and between two zones.
 // Until they are saved, zones use Hyprland's own gaps_out and twice gaps_in.
 // Zones are fractions (0 to 1) of the monitor's usable area.
@@ -32,6 +32,45 @@ var MAX_LAYOUTS = 20
 var MAX_ZONES = 16
 var MAX_PRESETS = 50
 var MAX_GAP = 200
+
+// The keyboard shortcut that opens the menu: modifiers and one key, in Hyprland's
+// "SUPER + ALT + Z" form, or "" for none. The service registers it at runtime.
+var DEFAULT_SHORTCUT = "SUPER + ALT + Z"
+// Marks OmaSizer's own binding in `hyprctl binds`; hypr/omasizer.lua uses the same text.
+var BIND_DESCRIPTION = "OmaSizer: open the menu"
+var MODIFIERS = ["SUPER", "CTRL", "ALT", "SHIFT"]
+var MODIFIER_MASKS = { SUPER: 64, CTRL: 4, ALT: 8, SHIFT: 1 }
+var SHORTCUT_KEY = /^(?:[A-Z0-9]|F(?:[1-9]|1[0-2])|LEFT|RIGHT|UP|DOWN|SPACE|RETURN|HOME|END|PAGEUP|PAGEDOWN|INSERT|DELETE|SLASH|BACKSLASH|COMMA|PERIOD|MINUS|EQUAL|GRAVE|SEMICOLON|APOSTROPHE|BRACKETLEFT|BRACKETRIGHT)$/
+
+// A shortcut in canonical form ("super+alt+z" becomes "SUPER + ALT + Z"), or null
+// unless it is one or more distinct modifiers and one supported key. The result is
+// also what gets written into the Lua the service hands Hyprland, so nothing else passes.
+function normalizeShortcut(value) {
+  if (typeof value !== "string") return null
+  var parts = value.toUpperCase().split("+").map(function(p) { return p.trim() })
+  var key = parts.pop()
+  if (!key || !SHORTCUT_KEY.test(key) || parts.length === 0) return null
+  for (var i = 0; i < parts.length; i++)
+    if (MODIFIERS.indexOf(parts[i]) < 0 || parts.indexOf(parts[i]) !== i) return null
+  return MODIFIERS.filter(function(m) { return parts.indexOf(m) >= 0 }).concat([key]).join(" + ")
+}
+
+// What already uses `shortcut` among `hyprctl -j binds`, as a short description, or
+// null when it is free. OmaSizer's own binding and mouse bindings don't count.
+function bindConflict(binds, shortcut) {
+  var combo = normalizeShortcut(shortcut)
+  if (!combo || !Array.isArray(binds)) return null
+  var parts = combo.split(" + ")
+  var key = parts.pop()
+  var mask = parts.reduce(function(sum, m) { return sum + MODIFIER_MASKS[m] }, 0)
+  for (var i = 0; i < binds.length; i++) {
+    var b = binds[i] || {}
+    if (b.mouse || b.submap || b.description === BIND_DESCRIPTION) continue
+    if (Number(b.modmask) === mask && String(b.key).toUpperCase() === key)
+      return String(b.description || [b.dispatcher, b.arg].filter(Boolean).join(" ") || "another shortcut").slice(0, 80)
+  }
+  return null
+}
 
 // A whole number of pixels from 0 to 200, or null when unset.
 function gap(value) {
@@ -161,6 +200,7 @@ function fromShellConfig(text) {
     titlebarClick: entry.titlebarClick !== false,
     borderClick: entry.borderClick !== false,
     layouts: Array.isArray(entry.layouts) ? sanitizeLayouts(entry.layouts) : defaultLayouts(),
+    shortcut: entry.shortcut === "" ? "" : normalizeShortcut(entry.shortcut) || DEFAULT_SHORTCUT,
     outerGap: gap(entry.outerGap),
     innerGap: gap(entry.innerGap)
   }
