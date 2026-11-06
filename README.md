@@ -1,106 +1,177 @@
 # OmaSizer
 
-Resize windows to preset sizes, or move them into screen zones like PowerToys FancyZones. It's an Omarchy shell plugin modelled on [Sizer](https://www.brianapps.net/sizer4/) and [KSizer](https://github.com/allenguarnes/KSizer), made for Omarchy 4.5's floating workspace layout.
+**Preset window sizes and snap zones for [Omarchy](https://omarchy.org).**
 
-## Opening the menu
+OmaSizer brings the window sizing tools Windows and KDE users have long had, [Sizer](https://www.brianapps.net/sizer4/), [KSizer](https://github.com/allenguarnes/KSizer) and PowerToys [FancyZones](https://learn.microsoft.com/en-us/windows/powertoys/fancyzones), to Omarchy's floating workspaces. Right-click a window's titlebar, pick a zone or a size, and the window lands exactly there.
 
-- **Right-click** a floating window's titlebar or one of its titlebar buttons, including maximize. The menu opens at the cursor and acts on that window.
-- **Right-click** a window's resize border or corner. This also opens the menu at the cursor for that window.
-- **Super + Alt + Z** opens the menu in the middle of the screen for the focused window.
+<p align="center">
+  <img src="docs/screenshots/rightclick.png" alt="The OmaSizer menu open over a window after right-clicking its titlebar" width="640">
+</p>
 
-Right-clicks inside a window still go to the app as usual. The menu opens when you release the button. A right-drag on the border resizes the window as usual and doesn't open it.
+## Features
 
-The menu shows the zone layouts drawn as small screens, then the size presets. Click a zone, or arrow to it and press `Enter`, to move the window into it. The window fills the zone, titlebar included, with a gap at the screen edges and between zones.
+- **Snap to zones.** Move a window into half, a third, a quadrant or any zone you draw. It fills the zone with the same gaps tiled windows get, titlebar included.
+- **Resize to preset sizes.** Set exact sizes such as 1280 × 720 or 1920 × 1080, centered on the screen and shrunk to fit if they're too big.
+- **Open it with the mouse.** Right-click a floating window's titlebar, any of its buttons, or its resize border, and the menu opens right at the cursor.
+- **Or with the keyboard.** <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>Z</kbd> opens it for the focused window. Number keys pick sizes, and arrows walk through the zones.
+- **Visual zone editor.** Drag zones, resize them by their edges, split and name them. Everything snaps to a grid, so halves, thirds and quarters line up exactly.
+- **Settings in the overlay.** Presets, layouts, gaps and behavior can all be changed with the mouse or entirely from the keyboard.
+- **Feels native.** It follows your Omarchy theme and uses Omarchy's own UI components.
 
-Default layouts:
+## Requirements
 
-- 50:50 columns and rows
-- 33:33:33 columns and rows
-- 75:25 main + side, and 25:75
-- 25:50:25 main with two sides
-- Quadrants
-
-Picking a preset does the following:
-
-- Leaves fullscreen or maximized first.
-- Floats a tiled window.
-- Resizes the window and centers it.
-- Shrinks a preset that is larger than the screen to fit.
-
-Centering and shrinking can each be turned off in settings.
-
-The menu takes these keys:
-
-- `1`–`9` apply a preset.
-- `↑`/`↓`/`←`/`→`, `h`/`j`/`k`/`l` or `Tab` move the selection zone by zone and then through the presets, and `Enter` picks it.
-- `S` opens settings.
-- `Esc` closes the menu.
-
-## Settings
-
-Choose **Settings…** at the bottom of the menu. There you can do the following:
-
-- Add, edit, reorder and remove presets. A new preset starts at the size of the window you right-clicked.
-- Under **Size presets**, turn **Center the window after resizing** and **Shrink presets that don't fit the screen** on or off.
-- Edit zone layouts. Click a layout under **Zone layouts**, or Tab to it and press `Enter`, to open the editor; **New layout** starts one with a single full-screen zone. In the editor:
-  - drag a zone to move it, or drag its edges and corners to resize it; edges snap to 24ths of the screen, so halves, thirds and quarters line up exactly;
-  - **Split side by side**, **Split stacked**, **Add zone** and **Remove zone** work on the selected zone;
-  - type the selected zone's X, Y, width and height in percent;
-  - name the layout, or **Delete layout**;
-  - from the keyboard, `Tab` moves through the zones and controls, arrows move the focused zone one grid step, `Shift`+arrows move its right or bottom edge, `Delete` removes it, `Enter` finishes and `Esc` discards the changes.
-
-  To reorder layouts, drag a thumbnail onto another, or focus one and press `Alt`+`←`/`→`. **Restore defaults** puts back the eight default layouts.
-
-  Layout edits, reordering and restoring are kept when you press **Save** in settings; **Cancel** discards them.
-- Set the zone gaps at the screen edges and between windows. They start from Omarchy's spacing (Hyprland's `gaps_out`, and twice `gaps_in`) and keep their own values once saved.
-- Under **Right-click to open**, choose whether a right-click on a window's titlebar, or on its resize border, opens the menu.
-
-Settings work fully from the keyboard:
-
-- `Tab` and `Shift+Tab` move through every field, button and switch.
-- `Space` or `Enter` presses the focused button or flips the focused switch.
-- `Enter` in a text field saves.
-- `Esc` goes back to the menu without saving.
-
-**Save** stores the settings in OmaSizer's entry in `~/.config/omarchy/shell.json`:
-
-```json
-{ "id": "omasizer", "center": true, "clamp": true, "titlebarClick": true, "borderClick": true,
-  "presets": [{ "label": "16:9", "width": 1280, "height": 720 }],
-  "layouts": [{ "name": "50:50 columns", "zones": [[0, 0, 0.5, 1], [0.5, 0, 0.5, 1]] }],
-  "outerGap": 10, "innerGap": 10 }
-```
-
-A zone is `[x, y, width, height]` as fractions of the screen's usable area. Without `layouts`, the defaults above are used.
-
-Sizes are logical pixels, from 1 to 16384. If the entry has no `presets`, KSizer's six defaults are used.
+- Omarchy 4.5 or later.
+- The right-click menu works on floating windows. The titlebar right-click needs Omarchy's floating workspace layout, which draws the titlebars.
+- The keyboard shortcut works on any window. A tiled window is floated before it's resized or moved into a zone.
 
 ## Install
 
-```bash
-omarchy plugin add https://github.com/allenguarnes/omasizer.git --enable
-```
+1. Add and enable the plugin:
 
-Then load the keybind and the right-click hook from `~/.config/hypr/bindings.lua`:
+   ```bash
+   omarchy plugin add https://github.com/allenguarnes/omasizer.git --enable
+   ```
+
+2. Load its keybinding and right-click hook by adding this line to `~/.config/hypr/bindings.lua`:
+
+   ```lua
+   dofile(os.getenv("HOME") .. "/.config/omarchy/plugins/omasizer/hypr/omasizer.lua")
+   ```
+
+   Hyprland reloads its config when you save, so the shortcut and right-click work right away.
+
+## Usage
+
+<p align="center">
+  <img src="docs/screenshots/menu.png" alt="The OmaSizer menu: zone layouts drawn as small screens, then size presets" width="333">
+</p>
+
+| To open the menu | It acts on |
+| --- | --- |
+| Right-click a floating window's titlebar, or one of its buttons | that window |
+| Right-click a window's resize border or corner | that window |
+| <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>Z</kbd> | the focused window |
+
+Right-clicks inside a window still reach the app. A right-drag on a border still resizes the window, and the menu opens only on a click.
+
+**Zones** are the layouts drawn as small screens. Click a zone to move the window into it. Out of the box you get 50:50, 33:33:33 (each as columns or rows), 75:25, 25:75, 25:50:25 and quadrants.
+
+**Sizes** are the presets. Picking one leaves fullscreen or maximized first, floats a tiled window, resizes it and centers it.
+
+| Key | Action |
+| --- | --- |
+| <kbd>1</kbd>–<kbd>9</kbd> | Apply that size preset |
+| <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd>, <kbd>Tab</kbd> | Move through zones, then sizes |
+| <kbd>Enter</kbd> | Apply the selected zone or size |
+| <kbd>S</kbd> | Open settings |
+| <kbd>Esc</kbd> | Close |
+
+## Settings
+
+Choose **Settings** at the bottom of the menu, or press <kbd>S</kbd>.
+
+<p align="center">
+  <img src="docs/screenshots/settings.png" alt="OmaSizer settings: size presets, zone layouts, zone gaps and right-click options" width="483">
+</p>
+
+- **Size presets:** add, edit, reorder and remove sizes. A new preset starts at the size of the window you right-clicked. This section also has the switches for centering the window after resizing and shrinking presets that don't fit the screen.
+- **Zone layouts:** click a layout to edit it, or use **New layout**. To reorder, drag one layout onto another or press <kbd>Alt</kbd> + <kbd>←</kbd>/<kbd>→</kbd>. **Restore defaults** brings back the built-in layouts.
+- **Zone gaps:** set the space at the screen edges and between windows. These start from Omarchy's own spacing; once you save, OmaSizer keeps your values.
+- **Right-click to open:** turn the titlebar and resize-border right-click on or off.
+
+Changes take effect when you press **Save**. **Cancel** or <kbd>Esc</kbd> discards them.
+
+Every control can be reached from the keyboard: <kbd>Tab</kbd> and <kbd>Shift</kbd> + <kbd>Tab</kbd> move between them, <kbd>Space</kbd> or <kbd>Enter</kbd> presses a button or flips a switch, and <kbd>Enter</kbd> in a text field saves.
+
+### Zone editor
+
+<p align="center">
+  <img src="docs/screenshots/editor.png" alt="The zone editor with three zones, percentage fields and editing buttons" width="483">
+</p>
+
+- Drag a zone to move it, or drag its edges and corners to resize it. Edges snap to 24ths of the screen.
+- **Split side by side**, **Split stacked**, **Add zone** and **Remove zone** act on the selected zone.
+- To place a zone exactly, type its X, Y, width and height in percent.
+- From the keyboard: <kbd>Tab</kbd> moves through zones and controls, the arrow keys move the focused zone one grid step, <kbd>Shift</kbd> + arrows resize it, <kbd>Delete</kbd> removes it, <kbd>Enter</kbd> finishes and <kbd>Esc</kbd> cancels.
+
+## Scripting
+
+The resize command works without the menu, so you can bind a key to a specific size or zone:
 
 ```lua
-dofile(os.getenv("HOME") .. "/.config/omarchy/plugins/omasizer/hypr/omasizer.lua")
+-- in ~/.config/hypr/bindings.lua
+o.bind("SUPER + CTRL + ALT + 1", "Window 1280×720", "~/.config/omarchy/plugins/omasizer/bin/omasizer 1280 720")
+o.bind("SUPER + CTRL + ALT + LEFT", "Window to left half", "~/.config/omarchy/plugins/omasizer/bin/omasizer --zone 0 0 0.5 1")
 ```
 
-## Per-preset hotkeys
-
-The resize script works without the menu:
-
-```lua
-o.bind("SUPER + ALT + 1", "Window 1280×720", "~/.config/omarchy/plugins/omasizer/bin/omasizer 1280 720")
+```text
+omasizer <width> <height> [window-address]
+omasizer --zone <x> <y> <width> <height> [window-address]
 ```
 
-`bin/omasizer <width> <height> [window-address]` targets the focused window unless an address is given. `bin/omasizer --zone <x> <y> <width> <height> [window-address]` moves it into a zone, for example `--zone 0 0 0.5 1` for the left half.
+Sizes are in logical pixels. A zone is given as fractions (0 to 1) of the monitor's usable area. Both act on the focused window unless a Hyprland window address is given.
 
-## Test
+## Configuration
+
+Settings are stored in OmaSizer's entry in `~/.config/omarchy/shell.json`. Anything left out uses its default.
+
+```json
+{
+  "id": "omasizer",
+  "presets": [{ "label": "16:9", "width": 1280, "height": 720 }],
+  "layouts": [{ "name": "50:50 columns", "zones": [[0, 0, 0.5, 1], [0.5, 0, 0.5, 1]] }],
+  "outerGap": 10,
+  "innerGap": 10,
+  "center": true,
+  "clamp": true,
+  "titlebarClick": true,
+  "borderClick": true
+}
+```
+
+| Key | Meaning |
+| --- | --- |
+| `presets` | Sizes in logical pixels, from 1 to 16384. Without it, the six default presets (800 × 600 to 2560 × 1080) are used. |
+| `layouts` | Zones as `[x, y, width, height]` fractions of the usable screen. Up to 20 layouts of 16 zones each. |
+| `outerGap`, `innerGap` | Zone gaps in pixels, at the screen edges and between windows. Unset, they follow Hyprland's `gaps_out` and twice its `gaps_in`. |
+| `center`, `clamp` | Center a resized window; shrink presets larger than the screen. |
+| `titlebarClick`, `borderClick` | Whether a right-click on a titlebar or a resize border opens the menu. |
+
+## Known limitations
+
+- **No Shift + drag snapping.** FancyZones-style snapping while you drag a window isn't possible yet: Omarchy's titlebars handle the drag themselves, and Hyprland doesn't report when a drag starts or ends. Use the right-click menu or a keyboard shortcut instead.
+- **Multiple monitors are untested.** Zones and sizes use the monitor the window is on, but this hasn't been tested on a multi-monitor setup.
+- After editing OmaSizer's QML files, run `omarchy restart shell`; changes to the code aren't always picked up while the shell is running.
+
+## Uninstall
 
 ```bash
-node test/presets.test.js
-lua test/hypr.test.lua
-bash test/omasizer.test.sh
+omarchy plugin remove omasizer
 ```
+
+Then remove the `dofile(...)` line from `~/.config/hypr/bindings.lua`.
+
+## Development
+
+```bash
+node test/presets.test.js      # settings, layouts and zone editing
+lua test/hypr.test.lua         # right-click hit-testing
+bash test/omasizer.test.sh     # resize command, against a stubbed hyprctl
+omarchy plugin validate .
+```
+
+| Path | What it holds |
+| --- | --- |
+| `OmaSizer.qml` | The overlay: the menu and its placement |
+| `Settings.qml`, `LayoutEditor.qml` | The settings screen and the zone editor |
+| `Presets.js` | Settings parsing, defaults, validation and zone math |
+| `bin/omasizer` | Resizes and places windows through `hyprctl` |
+| `hypr/omasizer.lua` | The keybinding and the right-click hook |
+
+## Credits
+
+Inspired by [Sizer](https://www.brianapps.net/sizer4/) by Brian Apps, [KSizer](https://github.com/allenguarnes/KSizer) for KDE Plasma, and Microsoft PowerToys [FancyZones](https://learn.microsoft.com/en-us/windows/powertoys/fancyzones).
+
+## License
+
+[MIT](LICENSE)
