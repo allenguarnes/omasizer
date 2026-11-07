@@ -66,6 +66,24 @@ assert(register("SUPER + CTRL + F5") == "unbind SUPER + ALT + Z, bind SUPER + CT
 assert(register("") == "unbind SUPER + CTRL + F5")
 assert(register("") == "")
 assert(register("SUPER + O") == "bind SUPER + O")
+
+-- A right-press OmaSizer claims is kept from the app; any other passes through.
+local press
+local cursor = { x = 200, y = 85 }
+hl = {
+  bind = function(keys, fn, opts) if keys == "mouse:273" and not (opts and opts.release) then press = fn end end,
+  get_cursor_pos = function() return cursor end,
+  get_config = function(name) return name == "plugin.hyprbars.bar_height" and 30 or 0 end,
+  get_windows = function() return { a } end,
+}
+_G.omasizer_state = nil
+M.register("", nil)
+assert(press().pass_event == false)                  -- titlebar
+cursor = { x = 200, y = 200 }
+assert(press().pass_event == true)                   -- inside the window: the app's
+cursor = { x = 200, y = 85 }
+M.register("", { titlebar = false, border = true })
+assert(press().pass_event == true)                   -- titlebar right-clicks turned off
 hl = nil
 
 print("ok")

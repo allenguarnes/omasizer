@@ -68,7 +68,8 @@ Item {
       console.warn("omasizer: refusing to load the Hyprland hook from", hook)
       return
     }
-    hookLoader.command = ["hyprctl", "eval", "omasizer_shortcut = \"" + shortcut + "\" dofile(\"" + hook + "\")"]
+    var clicks = "{ titlebar = " + (root.settings.titlebarClick !== false) + ", border = " + (root.settings.borderClick !== false) + " }"
+    hookLoader.command = ["hyprctl", "eval", "omasizer_shortcut = \"" + shortcut + "\" omasizer_clicks = " + clicks + " dofile(\"" + hook + "\")"]
     hookLoader.running = true
   }
 
@@ -79,6 +80,7 @@ Item {
     onLoaded: {
       var next = Presets.fromShellConfig(text())
       var changed = !root.settingsLoaded || next.shortcut !== root.settings.shortcut
+        || next.titlebarClick !== root.settings.titlebarClick || next.borderClick !== root.settings.borderClick
       root.settings = next
       root.settingsLoaded = true
       if (changed) root.register()

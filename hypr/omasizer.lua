@@ -5,8 +5,9 @@
 --
 -- OmaSizer's shell service loads this file with `hyprctl eval` when the shell
 -- starts and after every config reload, first setting `omasizer_shortcut` to
--- the shortcut to bind, or "" for none. Loaded from bindings.lua instead, the
--- default shortcut applies. Loading it again only changes what differs.
+-- the shortcut to bind, or "" for none, and `omasizer_clicks` to which
+-- right-clicks open the menu. Loaded from bindings.lua instead, the defaults
+-- apply. Loading it again only changes what differs.
 
 local M = {}
 
@@ -75,9 +76,9 @@ local function config_number(name, fallback)
   return value or fallback
 end
 
--- A right-press on the border also starts Hyprland's own border resize, which only
--- ends when Hyprland sees the release. So the press only records what was hit and
--- the menu opens on the release, once the pointer is back with Hyprland.
+-- A right-press OmaSizer claims is kept from the app under it (which would open
+-- its own context menu) and from Hyprland's border resize; any other right-press
+-- passes through. The menu opens on the release, so the release is swallowed too.
 local pressed
 
 local function on_right_press()
@@ -91,7 +92,9 @@ local function on_right_press()
   end
 
   local window, zone = M.target(hl.get_windows(), cursor.x, cursor.y, bar, grab)
-  pressed = window and { window = window, zone = zone, x = cursor.x, y = cursor.y } or nil
+  local clicks = (_G.omasizer_state or {}).clicks or {}
+  pressed = (window and clicks[zone] ~= false) and { window = window, zone = zone, x = cursor.x, y = cursor.y } or nil
+  return { pass_event = pressed == nil }
 end
 
 local function on_right_release()
@@ -102,7 +105,6 @@ local function on_right_release()
   end
 
   -- Every value is a number, a fixed word, or Hyprland's hex address, so the JSON needs no escaping.
-  -- The overlay drops the request when right-clicks on this zone are turned off in settings.
   local window = press.window
   local payload = string.format('{"address":"%s","zone":"%s","x":%d,"y":%d,"width":%d,"height":%d}',
     window.address, press.zone, math.floor(press.x), math.floor(press.y), window.size.x, window.size.y)
@@ -110,13 +112,15 @@ local function on_right_release()
 end
 
 -- Hyprland keeps this table until its config reloads, which also drops these binds.
-function M.register(shortcut)
+-- `clicks` maps "titlebar" and "border" to false to leave those right-clicks alone.
+function M.register(shortcut, clicks)
   local state = _G.omasizer_state or {}
   _G.omasizer_state = state
+  state.clicks = clicks
 
   if not state.mouse then
-    -- Non-consuming, so every right-click still reaches the app under it.
-    hl.bind("mouse:273", on_right_press, { non_consuming = true })
+    -- The press handler decides per click whether the app gets it.
+    hl.bind("mouse:273", on_right_press)
     hl.bind("mouse:273", on_right_release, { non_consuming = true, release = true, transparent = true, ignore_mods = true })
     state.mouse = true
   end
@@ -138,7 +142,7 @@ if hl and hl.bind then
   if shortcut == nil then
     shortcut = M.DEFAULT_SHORTCUT
   end
-  M.register(shortcut)
+  M.register(shortcut, _G.omasizer_clicks)
 end
 
 return M
