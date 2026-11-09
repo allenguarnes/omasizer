@@ -24,7 +24,7 @@ Omarchy 4.5's floating workspaces give every window a titlebar and the freedom t
 - Omarchy 4.5 or later.
 - The right-click menu works on floating windows. The titlebar right-click needs Omarchy's floating workspace layout, which draws the titlebars.
 - The keyboard shortcut works on any window. A tiled window is floated before it's resized or moved into a zone.
-- Uses `bash`, `jq` and Hyprland's `hyprctl`, which come with Omarchy. Nothing else needs to be installed, and nothing runs with elevated privileges.
+- Uses `bash`, `jq`, `timeout`, `flock` and Hyprland's `hyprctl`, which come with Omarchy. Nothing else needs to be installed, and nothing runs with elevated privileges.
 
 ## Install
 
@@ -162,7 +162,7 @@ Settings are stored in OmaSizer's entry in `~/.config/omarchy/shell.json`. Anyth
 omarchy plugin remove omasizer
 ```
 
-Nothing is left in your config. Removing or turning off OmaSizer takes its shortcuts and right-click hook out of Hyprland right away. This also removes any plain right-click binding of your own until the next Hyprland config reload, since Hyprland can only unbind by key.
+Nothing is left in your config. Removing or turning off OmaSizer takes its shortcuts out of Hyprland right away. Its right-click hook stops acting at once and passes every right-click through, and the next Hyprland config reload removes it; it isn't unbound directly, since Hyprland can only unbind by key, which would take any right-click binding of your own with it.
 
 If you installed OmaSizer 1.0 and added its `dofile(...)` line to `~/.config/hypr/bindings.lua`, you can remove that line now. Leaving it in place is harmless, though turning OmaSizer off then only lasts until the next config reload, which loads the line again.
 

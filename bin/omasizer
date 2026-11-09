@@ -18,6 +18,13 @@
 
 set -euo pipefail
 
+# Each keypress starts one of these detached, so a stalled compositor must not pile them up.
+# A run, with every process it starts (the swap's child included), is killed after 5 seconds;
+# killed, it never carries on with half-read values: the window stays as it was, or at worst part-way moved.
+if [[ -z ${OMASIZER_DEADLINE:-} ]]; then
+  OMASIZER_DEADLINE=1 exec timeout -k 1 5 "$0" "$@"
+fi
+
 usage() {
   echo "Usage: omasizer <width> <height> [window-address]" >&2
   echo "       omasizer [--layout <zones-json>] --zone <x> <y> <width> <height> [window-address]" >&2
@@ -69,10 +76,18 @@ elif [[ ${1:-} == --zone ]]; then
   for value in "$zone_x" "$zone_y" "$zone_w" "$zone_h"; do
     [[ $value =~ $fraction ]] || usage
   done
+  jq -en "$geometry [$zone_x, $zone_y, $zone_w, $zone_h] | valid_zone" >/dev/null 2>&1 || usage
 else
   mode=size
   width=${1:-} height=${2:-} address=${3:-}
-  [[ $width =~ ^[1-9][0-9]*$ && $height =~ ^[1-9][0-9]*$ ]] || usage
+  [[ $width =~ ^[1-9][0-9]{0,4}$ && $height =~ ^[1-9][0-9]{0,4}$ ]] && (( width <= 16384 && height <= 16384 )) || usage
+fi
+
+# One runs at a time: a request that can't start within a second is dropped.
+run_dir=${XDG_RUNTIME_DIR:?omasizer: XDG_RUNTIME_DIR is not set}
+if [[ -z ${OMASIZER_SWAPPING:-} ]]; then
+  exec 9>"$run_dir/omasizer.lock"
+  flock -w 1 9 || exit 0
 fi
 
 if [[ -n $address ]]; then
@@ -83,12 +98,13 @@ fi
 [[ -n $client ]] || { echo "omasizer: no window to resize" >&2; exit 1; }
 
 shell_config=${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/shell.json
-read -r center clamp outer_gap inner_gap swap_zones < <(jq -r 'first(.plugins[]? | select(.id == "omasizer")) // {}
+read -r center clamp outer_gap inner_gap swap_zones < <(jq -r 'last(.plugins[]? | select(.id == "omasizer")) // {}
   | def gap: if type == "number" and . == floor and . >= 0 and . <= 200 then . else "-" end;
   "\(.center != false) \(.clamp != false) \(.outerGap | gap) \(.innerGap | gap) \(.swap != false)"' "$shell_config" 2>/dev/null || echo "true true - - true")
 
 read -r address floating fullscreen monitor x y titlebar < <(jq -r '
   "\(.address) \(.floating) \(.fullscreen) \(.monitor) \(.at[0]) \(.at[1]) \(any(.tags[]?; . == "omarchy-floating-workspace" or . == "omarchy-floating-workspace*"))"' <<<"$client")
+[[ $address =~ ^0x[0-9a-f]+$ ]] || { echo "omasizer: unexpected window address" >&2; exit 1; }
 window="address:$address"
 
 # Usable logical area of the window's monitor: rotated monitors swap axes, the bar's reserved space is excluded.
@@ -111,7 +127,7 @@ frame_args=(
 frame_args+=(--argjson bar "$([[ $titlebar == true ]] && echo "${frame_args[-1]}" || echo 0)")
 
 # Which layout each window was last placed in: window address to that layout's zones.
-memory=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/omasizer-layouts.json
+memory=$run_dir/omasizer-layouts.json
 
 if [[ $mode == move ]]; then
   remembered=$(jq -c --arg a "$address" '.[$a] // null' "$memory" 2>/dev/null) || remembered=null
@@ -173,6 +189,11 @@ elif [[ $clamp == true ]]; then
   (( height > area_h )) && height=$area_h
 fi
 
+number='^-?[0-9]+$'
+for value in "$width" "$height" "${x:-0}" "${y:-0}"; do
+  [[ $value =~ $number ]] || { echo "omasizer: unexpected geometry" >&2; exit 1; }
+done
+
 hypr_dispatch() {
   local lua="$1"
   shift
@@ -203,9 +224,10 @@ fi
 # Remember the layout, keeping only windows that are still open. A preset size takes
 # the window out of its layout, so it forgets it and the arrows start from the starred one.
 if [[ -n $layout || $mode == size ]]; then
-  open_windows=$(hyprctl clients -j | jq -c 'map(.address)') || open_windows='[]'
+  open_windows=$(hyprctl clients -j | jq -c 'map(.address)') || open_windows=null
+  trap 'rm -f "$memory.$$"' EXIT
   { jq -c . "$memory" 2>/dev/null || echo '{}'; } | jq -c --arg a "$address" --argjson l "${layout:-null}" --argjson open "$open_windows" '
-    (if type == "object" then . else {} end) | with_entries(select(.key as $k | $open | index($k)))
+    (if type == "object" then . else {} end) | with_entries(select(.key as $k | $open == null or ($open | index($k))))
     | if $l == null then del(.[$a]) else . + {($a): $l} end' >"$memory.$$" \
     && mv "$memory.$$" "$memory"
 fi

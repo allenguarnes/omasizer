@@ -34,6 +34,7 @@ assert(M.target({ tiled }, 200, 85, 30, 10) == nil)
 assert(M.target({ a, tiled }, 200, 150, 30, 10) == nil)
 local full = window(0, 0, 1920, 1200, { fullscreen = 2 })
 assert(M.target({ a, full }, 200, 85, 30, 10) == nil)
+assert(M.target({ full, a }, 200, 85, 30, 10) == nil)  -- a fullscreen window is above floating ones, whatever the order
 
 -- Floating windows off the floating workspace have a border band but no titlebar.
 local plain = window(100, 100, 400, 300, { tags = {} })
@@ -87,7 +88,7 @@ local function register(shortcut, move)
   table.sort(calls)
   return table.concat(calls, ", ")
 end
-_G.omasizer_state = nil
+_G.omasizer_state, _G.omasizer_mouse = nil, nil
 assert(register("SUPER + ALT + Z") == "bind SUPER + ALT + Z, bind mouse:273, bind mouse:273")
 assert(register("SUPER + ALT + Z") == "")
 assert(register("SUPER + CTRL + F5") == "bind SUPER + CTRL + F5, unbind SUPER + ALT + Z")
@@ -99,8 +100,14 @@ assert(register("SUPER + O", "SUPER + CTRL + ALT") == "bind SUPER + CTRL + ALT +
 assert(register("SUPER + O", "SUPER + CTRL + ALT") == "")
 assert(register("SUPER + O", "SUPER + SHIFT") == "bind SUPER + SHIFT + DOWN, bind SUPER + SHIFT + LEFT, bind SUPER + SHIFT + RIGHT, bind SUPER + SHIFT + UP, unbind SUPER + CTRL + ALT + DOWN, unbind SUPER + CTRL + ALT + LEFT, unbind SUPER + CTRL + ALT + RIGHT, unbind SUPER + CTRL + ALT + UP")
 assert(register("SUPER + O", "") == "unbind SUPER + SHIFT + DOWN, unbind SUPER + SHIFT + LEFT, unbind SUPER + SHIFT + RIGHT, unbind SUPER + SHIFT + UP")
+-- Old keys go before new ones are bound, so a shortcut that was an old arrow key survives the change.
+register("SUPER + O", "SUPER + SHIFT")
+calls = {}
+M.register("SUPER + SHIFT + LEFT", nil, "")
+assert(calls[#calls] == "bind SUPER + SHIFT + LEFT")
 
--- Unregistering removes everything, but only for the service instance that owns the binds.
+-- Unregistering removes its keys, but only for the service instance that owns the binds.
+-- The right-click hook stays bound (unbinding it would take the user's own right-click binds too) but goes inert.
 _G.omasizer_state = nil
 calls = {}
 M.register("SUPER + O", nil, "SUPER + SHIFT", "old")
@@ -110,9 +117,24 @@ M.unregister("old")
 assert(#calls == 0 and _G.omasizer_state ~= nil)
 M.unregister("new")
 table.sort(calls)
-assert(table.concat(calls, ", ") == "unbind SUPER + O, unbind SUPER + SHIFT + DOWN, unbind SUPER + SHIFT + LEFT, unbind SUPER + SHIFT + RIGHT, unbind SUPER + SHIFT + UP, unbind mouse:273")
+assert(table.concat(calls, ", ") == "unbind SUPER + O, unbind SUPER + SHIFT + DOWN, unbind SUPER + SHIFT + LEFT, unbind SUPER + SHIFT + RIGHT, unbind SUPER + SHIFT + UP")
 assert(_G.omasizer_state == nil)
 M.unregister("new")                                  -- twice is harmless
+calls = {}
+M.register("", nil, "", "again")
+assert(#calls == 0)                                  -- registering again doesn't bind the right-click twice
+assert(_G.omasizer_unregister == M.unregister)       -- the service unloads through it, with no file needed
+
+-- After an update, a hook an earlier version bound is neither bound twice nor left behind.
+_G.omasizer_state, _G.omasizer_mouse = { mouse = true, owner = "v120", shortcut = "", move = "" }, nil
+calls = {}
+M.register("", nil, "", "v120")
+assert(#calls == 0)
+M.unregister("v120")
+assert(table.concat(calls, ", ") == "unbind mouse:273")
+calls = {}
+M.register("", nil, "", "v121")
+assert(table.concat(calls, ", ") == "bind mouse:273, bind mouse:273")
 
 -- A right-press OmaSizer claims is kept from the app; any other passes through.
 local press
@@ -125,7 +147,7 @@ hl = {
   get_monitor_at = function() return mon end,
   get_layers = function() return {} end,
 }
-_G.omasizer_state = nil
+_G.omasizer_state, _G.omasizer_mouse = nil, nil
 M.register("", nil)
 assert(press().pass_event == false)                  -- titlebar
 cursor = { x = 200, y = 200 }
@@ -154,6 +176,10 @@ assert(press().pass_event == true)
 hl.get_cursor_pos = function() return cursor end
 hl.get_windows = function() error("boom") end
 assert(press().pass_event == true)
+hl.get_windows = function() return { high } end
+assert(press().pass_event == false)
+M.unregister(nil)
+assert(press().pass_event == true)                   -- unregistered: the hook claims nothing
 
 -- The release opens the menu, and a window that closed in between makes it do nothing, without an error.
 local release, summoned
@@ -161,11 +187,17 @@ hl.bind = function(keys, fn, opts) if keys == "mouse:273" and opts and opts.rele
 hl.exec_cmd = function(cmd) summoned = cmd end
 hl.get_windows = function() return { a } end
 cursor = { x = 200, y = 85 }
-_G.omasizer_state = nil
+_G.omasizer_state, _G.omasizer_mouse = nil, nil
 M.register("", nil)
 assert(press().pass_event == false)
 release()
 assert(summoned and summoned:find('"zone":"titlebar"'))
+-- A window between sizes (an animation, fractional scaling) still opens the menu.
+summoned = nil
+a.size = { x = 400.5, y = 300.25 }
+assert(press().pass_event == false)
+release()
+assert(summoned and summoned:find('"width":400,"height":300'))
 summoned = nil
 assert(press().pass_event == false)
 a.size = nil

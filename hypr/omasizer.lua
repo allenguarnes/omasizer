@@ -49,12 +49,16 @@ function M.zone(window, x, y, bar, grab)
 end
 
 -- How high a window stacks, as Hyprland's own hit test orders them: pinned windows,
--- then the shown special workspace, then the rest, which Hyprland lists bottom to top.
+-- then the shown special workspace, then fullscreen ones, then the rest, which Hyprland
+-- lists bottom to top. A fullscreen window counts above every floating one, whatever
+-- the list order, so a right-click in a fullscreen app is never taken for a titlebar's.
 local function stack_tier(window)
   if window.pinned then
     return 3
   elseif window.workspace and window.workspace.special then
     return 2
+  elseif (window.fullscreen or 0) ~= 0 then
+    return 1.5
   end
   return 1
 end
@@ -131,6 +135,10 @@ end
 local pressed
 
 local function claim_press()
+  -- Unregistered, the hook stays bound but claims nothing (see M.unregister).
+  if not _G.omasizer_state then
+    return nil
+  end
   local cursor = hl.get_cursor_pos()
   if not cursor or M.overlay_at(hl.get_layers(), cursor.x, cursor.y) then
     return nil
@@ -171,7 +179,7 @@ local function open_menu(press)
   -- Every value is a number, a fixed word, or Hyprland's hex address, so the JSON needs no escaping.
   local window = press.window
   local payload = string.format('{"address":"%s","zone":"%s","x":%d,"y":%d,"width":%d,"height":%d}',
-    window.address, press.zone, math.floor(press.x), math.floor(press.y), window.size.x, window.size.y)
+    window.address, press.zone, math.floor(press.x), math.floor(press.y), math.floor(window.size.x), math.floor(window.size.y))
   hl.exec_cmd("omarchy-shell shell summon omasizer '" .. payload .. "'")
 end
 
@@ -192,32 +200,39 @@ function M.register(shortcut, clicks, move, owner)
   state.clicks = clicks
   state.owner = owner
 
-  if not state.mouse then
+  -- Bound once per Hyprland config (a reload drops it); unregistering leaves it bound but inert.
+  -- state.mouse marks a hook bound by OmaSizer 1.2.0 or earlier, still loaded after an update.
+  if not _G.omasizer_mouse and not state.mouse then
     -- The press handler decides per click whether the app gets it.
     hl.bind("mouse:273", on_right_press)
     hl.bind("mouse:273", on_right_release, { non_consuming = true, release = true, transparent = true, ignore_mods = true })
-    state.mouse = true
+    _G.omasizer_mouse = true
   end
+  -- The service unloads through this, so unloading works even once the plugin's files are gone.
+  _G.omasizer_unregister = M.unregister
 
-  if state.shortcut ~= shortcut then
-    -- Only a shortcut this file bound is ever unbound; the service never passes one that is in use.
-    if state.shortcut and state.shortcut ~= "" then
-      hl.unbind(state.shortcut)
+  -- Every old key is unbound before any new one is bound, so a new shortcut that was an old arrow key survives.
+  -- Only keys this file bound are ever unbound; the service never passes one that is in use.
+  move = move or ""
+  local new_shortcut, new_move = state.shortcut ~= shortcut, state.move ~= move
+  if new_shortcut and state.shortcut and state.shortcut ~= "" then
+    hl.unbind(state.shortcut)
+  end
+  if new_move and state.move and state.move ~= "" then
+    for key in pairs(M.ARROWS) do
+      hl.unbind(state.move .. " + " .. key)
     end
+  end
+  if new_shortcut then
     if shortcut ~= "" then
       hl.bind(shortcut, hl.dsp.exec_cmd("omarchy-shell shell toggle omasizer"), { description = M.DESCRIPTION })
     end
     state.shortcut = shortcut
   end
-
-  move = move or ""
-  if state.move ~= move then
+  if new_move then
     -- The overlay runs the move: it holds the layouts, and opens nothing for it.
-    for key, direction in pairs(M.ARROWS) do
-      if state.move and state.move ~= "" then
-        hl.unbind(state.move .. " + " .. key)
-      end
-      if move ~= "" then
+    if move ~= "" then
+      for key, direction in pairs(M.ARROWS) do
         hl.bind(move .. " + " .. key, hl.dsp.exec_cmd("omarchy-shell shell summon omasizer '{\"move\":\"" .. direction .. "\"}'"),
           { description = M.MOVE_DESCRIPTION })
       end
@@ -235,7 +250,9 @@ function M.unregister(owner)
   end
   -- Never Keybind:remove(): it removes every bind on the same keys, and calling it on the
   -- second, already removed one crashes Hyprland 0.56 (a null dereference in keybindRemove).
-  -- shortcut: this also removes a plain right-click bind of the user's own, until the next reload.
+  -- The right-click hook is not unbound: that would also remove a plain right-click bind of
+  -- the user's own. With no state it claims nothing, and the next config reload drops it.
+  -- An earlier version's hook can't go inert, so that one is unbound as it always was.
   if state.mouse then
     hl.unbind("mouse:273")
   end

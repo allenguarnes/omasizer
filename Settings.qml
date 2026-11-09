@@ -200,7 +200,7 @@ Column {
   // Hyprland reports gaps as CSS-style sides; the first side stands for all of them.
   Process {
     id: hyprlandGaps
-    command: ["bash", "-c", "hyprctl getoption general:gaps_out -j | jq -r '.css // .int'; hyprctl getoption general:gaps_in -j | jq -r '.css // .int'"]
+    command: ["bash", "-c", "timeout 2 hyprctl getoption general:gaps_out -j | jq -r '.css // .int'; timeout 2 hyprctl getoption general:gaps_in -j | jq -r '.css // .int'"]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {

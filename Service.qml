@@ -27,6 +27,8 @@ Item {
   property string blockedMoveBy: ""
   property string notifiedMove: ""
   property bool registerAgain: false
+  // A config reload dropped every bind, so the hook's record of them is cleared on the next load.
+  property bool reloaded: false
   // Marks the binds this instance makes, so its teardown never removes a newer instance's.
   readonly property string owner: String(Date.now()) + String(Math.floor(Math.random() * 1e6))
   readonly property string hookPath: root.pluginDir + "hypr/omasizer.lua"
@@ -95,7 +97,9 @@ Item {
       return
     }
     var clicks = "{ titlebar = " + (root.settings.titlebarClick !== false) + ", border = " + (root.settings.borderClick !== false) + " }"
-    hookLoader.command = ["hyprctl", "eval", "omasizer_unload = nil omasizer_owner = \"" + root.owner + "\" omasizer_shortcut = \"" + shortcut
+    var reset = root.reloaded ? "omasizer_state = nil omasizer_mouse = nil " : ""
+    root.reloaded = false
+    hookLoader.command = ["timeout", "-k", "1", "2", "hyprctl", "eval", reset + "omasizer_unload = nil omasizer_owner = \"" + root.owner + "\" omasizer_shortcut = \"" + shortcut
       + "\" omasizer_clicks = " + clicks + " omasizer_move = \"" + move + "\" dofile(\"" + hook + "\")"]
     hookLoader.running = true
   }
@@ -121,7 +125,7 @@ Item {
   Process {
     id: bindsReader
     property bool registering: false
-    command: ["hyprctl", "-j", "binds"]
+    command: ["timeout", "-k", "1", "2", "hyprctl", "-j", "binds"]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {
@@ -131,10 +135,11 @@ Item {
         } catch (e) {}
       }
     }
-    onExited: {
+    onExited: function(exitCode) {
       if (registering) {
         registering = false
-        root.loadHook()
+        // A failed or timed-out read leaves the conflict check without a list; the next register tries again.
+        if (exitCode === 0) root.loadHook()
       } else if (root.registerAgain) {
         // A register that arrived during a plain read (Settings refreshing the list).
         root.register()
@@ -153,15 +158,19 @@ Item {
 
   // Turning OmaSizer off, or the shell going away, takes its keys and right-click hook
   // with it; Hyprland would otherwise keep them until its config reloads.
+  // It calls the hook already loaded, so it works even when the plugin's files are already gone.
   Component.onDestruction: {
-    if (/^[A-Za-z0-9_\/.\-]+$/.test(root.hookPath))
-      Quickshell.execDetached(["hyprctl", "eval", "omasizer_unload = \"" + root.owner + "\" dofile(\"" + root.hookPath + "\")"])
+    Quickshell.execDetached(["timeout", "-k", "1", "2", "hyprctl", "eval",
+      "if omasizer_unregister then omasizer_unregister(\"" + root.owner + "\") end"])
   }
 
   Connections {
     target: Hyprland
     function onRawEvent(event) {
-      if (event && String(event.name) === "configreloaded") root.register()
+      if (event && String(event.name) === "configreloaded") {
+        root.reloaded = true
+        root.register()
+      }
     }
   }
 }

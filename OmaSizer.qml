@@ -73,6 +73,7 @@ Item {
       var spec = { layouts: current.layouts.map(function(l) { return l.zones }),
         starred: Math.max(0, Presets.starredIndex(current.layouts)) }
       root.dismiss()
+      // Detached, so it outlives the overlay; bin/omasizer runs one at a time and caps each run at 5 s.
       if (spec.layouts.length) Quickshell.execDetached([root.pluginDir + "bin/omasizer", "--move", payload.move, JSON.stringify(spec)])
       return
     }
@@ -86,7 +87,8 @@ Item {
 
     // Hyprland addresses are hex; anything else is not passed on to the resize command.
     root.address = /^0x[0-9a-f]+$/.test(String(payload.address || "")) ? payload.address : ""
-    root.atCursor = root.address !== "" && isFinite(payload.x) && isFinite(payload.y)
+    root.atCursor = root.address !== "" && typeof payload.x === "number" && typeof payload.y === "number"
+      && isFinite(payload.x) && isFinite(payload.y)
     root.cursorX = root.atCursor ? payload.x : 0
     root.cursorY = root.atCursor ? payload.y : 0
     root.windowWidth = Presets.validSize(payload.width) ? payload.width : 0
@@ -125,6 +127,7 @@ Item {
     else return
     if (root.address) command.push(root.address)
     root.dismiss()
+    // Detached, so it outlives the overlay; bin/omasizer runs one at a time and caps each run at 5 s.
     Quickshell.execDetached(command)
   }
 

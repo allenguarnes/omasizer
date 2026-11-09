@@ -126,4 +126,30 @@ for args in "0 600" "--zone 0 0 1.5 1" "--zone 0 0 x 1" "--zone 0 0 1" "--move l
   if "$root/bin/omasizer" $args 2>/dev/null; then echo "accepted: $args" >&2; exit 1; fi
 done
 
+# A stalled compositor can't pile helpers up: one runs at a time and is killed with everything
+# it started after 5 s, and the rest wait at most a second, then drop their request.
+mkdir -p "$tmp/stall"
+printf '#!/bin/bash\nsleep 30\n' >"$tmp/stall/hyprctl"; chmod +x "$tmp/stall/hyprctl"
+start=$SECONDS
+for _ in 1 2 3 4 5; do PATH="$tmp/stall:$PATH" "$root/bin/omasizer" 800 600 >/dev/null 2>&1 & done
+wait
+(( SECONDS - start <= 7 )) || { echo "stalled helpers piled up for $((SECONDS - start)) s" >&2; exit 1; }
+! pgrep -f "$tmp/stall/hyprctl" >/dev/null || { echo "a stalled hyprctl outlived its helper" >&2; exit 1; }
+
+# A compositor that answers but stalls on the dispatch: the run, swap child included, is
+# killed at its deadline, and leaves the lock free and no process behind.
+sed 's/^dispatch\*).*/dispatch*) sleep 30 ;;/' "$tmp/hyprctl" >"$tmp/stall/hyprctl"
+start=$SECONDS
+memory_before=$(cat "$tmp/omasizer-layouts.json" 2>/dev/null || true)
+PATH="$tmp/stall:$PATH" AT=12,68 SIZE=941,538 "$root/bin/omasizer" --layout "$quads" --zone 0.5 0 0.5 0.5 >/dev/null 2>&1 && { echo "a stalled dispatch reported success" >&2; exit 1; }
+(( SECONDS - start <= 7 )) || { echo "a stalled dispatch held a run for $((SECONDS - start)) s" >&2; exit 1; }
+flock -n "$tmp/omasizer.lock" true || { echo "the lock outlived a killed run" >&2; exit 1; }
+! pgrep -f "$tmp/stall/hyprctl" >/dev/null || { echo "a stalled hyprctl outlived its helper" >&2; exit 1; }
+[[ $(cat "$tmp/omasizer-layouts.json" 2>/dev/null || true) == "$memory_before" ]] || { echo "a killed run changed the layout memory" >&2; exit 1; }
+
+# Nothing outside a sane size or the screen gets through.
+for args in "99999999999999999999 1" "16385 600" "--zone 0.6 0 0.5 1"; do
+  ! "$root/bin/omasizer" $args 2>/dev/null || { echo "accepted: $args" >&2; exit 1; }
+done
+
 echo ok
