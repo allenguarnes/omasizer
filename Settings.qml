@@ -8,8 +8,8 @@ import qs.Ui
 import "Presets.js" as Presets
 import "Icons.js" as Icons
 
-// Edit the preset list and the resize options. Emits `saved` with
-// { presets, center, clamp } or `cancelled`; the caller stores it.
+// Edit the preset list, the layouts and the options. Emits `saved` with the whole
+// settings entry, or `cancelled`; the caller stores it.
 Column {
   id: root
 
@@ -23,10 +23,15 @@ Column {
   property bool clamp: true
   property bool titlebarClick: true
   property bool borderClick: true
+  property bool swap: true
   property string shortcut: ""
   // OmaSizer's service: it registers the shortcut and knows what else is bound.
   property var service: null
-  readonly property string shortcutHolder: root.service && root.shortcut ? root.service.conflictFor(root.shortcut) || "" : ""
+  readonly property string shortcutHolder: !root.service || !root.shortcut ? ""
+    : root.service.conflictFor(root.shortcut) || (Presets.ownConflict(root.shortcut, root.moveKeys) ? Presets.MOVE_DESCRIPTION : "")
+  // The modifiers that move a window between zones with the arrows, and what already uses them.
+  property string moveKeys: ""
+  readonly property string moveHolder: root.service && root.moveKeys ? root.service.moveConflictFor(root.moveKeys) || "" : ""
   property var layouts: []
   // The tallest the form may be before it scrolls.
   property real maxHeight: 100000
@@ -39,6 +44,10 @@ Column {
   property string layoutHint: ""
   // While a thumbnail is dragged, the layout it would land on.
   property int dropIndex: -1
+  // The layout being dragged (-1 for none), where the pointer is in the form, and where it grabbed the thumbnail.
+  property int dragFrom: -1
+  property point dragPoint
+  property point dragGrab
   readonly property bool layoutsAreDefault: JSON.stringify(root.layouts) === JSON.stringify(Presets.defaultLayouts())
   // Zone gaps as typed. Until they are saved they start from Hyprland's gaps_out
   // and twice gaps_in, Omarchy's spacing; once saved they are OmaSizer's own.
@@ -59,7 +68,7 @@ Column {
 
   function trySave() {
     if (root.valid) root.saved({ presets: Presets.sanitize(root.draft), center: root.center, clamp: root.clamp,
-      titlebarClick: root.titlebarClick, borderClick: root.borderClick, shortcut: root.shortcut, layouts: root.layouts,
+      titlebarClick: root.titlebarClick, borderClick: root.borderClick, swap: root.swap, shortcut: root.shortcut, moveKeys: root.moveKeys, layouts: root.layouts,
       outerGap: Number(root.outerGap), innerGap: Number(root.innerGap) })
   }
 
@@ -77,7 +86,9 @@ Column {
     root.clamp = settings.clamp
     root.titlebarClick = settings.titlebarClick
     root.borderClick = settings.borderClick
+    root.swap = settings.swap
     root.shortcut = settings.shortcut
+    root.moveKeys = settings.moveKeys
     if (root.service) root.service.refreshBinds()
     root.layouts = settings.layouts
     root.editingIndex = -2
@@ -155,6 +166,12 @@ Column {
       if (point.x >= thumb.x && point.x < thumb.x + thumb.width && point.y >= thumb.y && point.y < thumb.y + thumb.height) return i
     }
     return -1
+  }
+
+  // Star the layout at `index`, the one the arrow keys use for windows not yet placed from a layout.
+  function starLayout(index) {
+    root.layouts = Presets.starLayout(root.layouts, index)
+    Qt.callLater(function() { var thumb = layoutRepeater.itemAt(index); if (thumb) thumb.forceActiveFocus() })
   }
 
   // Restoring only changes the list here; Save keeps it and Cancel undoes it.
@@ -368,15 +385,24 @@ Column {
           width: layoutList.thumbWidth
           height: Math.round(width * root.aspect)
           zones: modelData.zones
+          starShown: true
+          starred: modelData.starred === true
+          onStarClicked: root.starLayout(index)
           highlighted: activeFocus || (thumbMouse.containsMouse && root.dropIndex < 0) || index === root.dropIndex
-          opacity: thumbMouse.dragging ? 0.5 : 1
+          // Its place stays faint while a copy follows the pointer.
+          opacity: thumbMouse.dragging ? 0.25 : 1
           activeFocusOnTab: true
           onHighlightedChanged: {
             if (highlighted) root.layoutHint = modelData.name || root.strings.t("settings.unnamedLayout")
             else if (!activeFocus && !thumbMouse.containsMouse) root.layoutHint = ""
           }
-          // Alt and an arrow move the layout one place earlier or later.
+          // Alt and an arrow move the layout one place earlier or later; S stars it.
           Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_S && !event.modifiers) {
+              root.starLayout(index)
+              event.accepted = true
+              return
+            }
             if (!(event.modifiers & Qt.AltModifier)) return
             if (event.key === Qt.Key_Left || event.key === Qt.Key_Up) root.moveLayout(index, index - 1)
             else if (event.key === Qt.Key_Right || event.key === Qt.Key_Down) root.moveLayout(index, index + 1)
@@ -405,18 +431,29 @@ Column {
             }
             onPositionChanged: function(mouse) {
               if (!pressed) return
-              if (!dragging && Math.abs(mouse.x - pressAt.x) + Math.abs(mouse.y - pressAt.y) > Style.space(6)) dragging = true
-              if (dragging) root.dropIndex = root.layoutIndexAt(mapToItem(layoutList, mouse.x, mouse.y))
+              if (!dragging && Math.abs(mouse.x - pressAt.x) + Math.abs(mouse.y - pressAt.y) > Style.space(6)) {
+                dragging = true
+                root.dragFrom = layoutThumb.index
+                root.dragGrab = pressAt
+              }
+              if (dragging) {
+                root.dragPoint = mapToItem(form, mouse.x, mouse.y)
+                root.dropIndex = root.layoutIndexAt(mapToItem(layoutList, mouse.x, mouse.y))
+              }
             }
+            // Moving rebuilds the list and this thumbnail with it, so the drag state is cleared first.
             onReleased: {
-              if (dragging) root.moveLayout(layoutThumb.index, root.dropIndex)
+              var target = dragging ? root.dropIndex : -1
               dragged = dragging
               dragging = false
               root.dropIndex = -1
+              root.dragFrom = -1
+              if (target >= 0) root.moveLayout(layoutThumb.index, target)
             }
             onCanceled: {
               dragging = false
               root.dropIndex = -1
+              root.dragFrom = -1
             }
             onClicked: if (!dragged) root.editLayout(layoutThumb.index)
           }
@@ -448,6 +485,8 @@ Column {
         onClicked: root.restoreLayouts()
       }
     }
+
+    SwitchRow { key: "swap"; text: root.strings.t("settings.swap") }
 
     SectionTitle {
       topPadding: Style.space(10)
@@ -548,6 +587,58 @@ Column {
     SwitchRow { key: "titlebarClick"; text: root.strings.t("settings.titlebarClick") }
     SwitchRow { key: "borderClick"; text: root.strings.t("settings.borderClick") }
 
+    SectionTitle {
+      topPadding: Style.space(10)
+      text: root.strings.t("settings.moveZones")
+    }
+
+    Item {
+      width: root.width
+      height: moveField.height
+
+      Label {
+        anchors.left: parent.left
+        anchors.right: moveField.left
+        anchors.verticalCenter: parent.verticalCenter
+        text: root.strings.t("settings.moveKeys")
+        elide: Text.ElideRight
+      }
+
+      ShortcutField {
+        id: moveField
+        anchors.right: defaultMove.left
+        anchors.rightMargin: Style.spacing.sm
+        arrows: true
+        shortcut: root.moveKeys
+        offText: root.strings.t("settings.shortcutOff")
+        listeningText: root.strings.t("settings.moveListening")
+        onEdited: function(next) { root.moveKeys = next }
+      }
+
+      Button {
+        id: defaultMove
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        focusable: true
+        bordered: true
+        iconText: Icons.restore
+        tooltipText: root.strings.t("settings.moveDefault")
+        enabled: root.moveKeys !== Presets.DEFAULT_MOVE_KEYS
+        opacity: enabled ? 1 : 0.4
+        onClicked: root.moveKeys = Presets.DEFAULT_MOVE_KEYS
+      }
+    }
+
+    Label {
+      width: parent.width
+      wrapMode: Text.WordWrap
+      font.pixelSize: Style.font.bodySmall
+      color: root.moveHolder ? Commons.Color.urgent : Commons.Color.menu.text
+      opacity: root.moveHolder ? 1 : 0.6
+      text: root.moveHolder ? root.strings.t("settings.moveTaken").arg(root.moveHolder)
+        : root.strings.t("settings.moveHint")
+    }
+
     Row {
       anchors.right: parent.right
       spacing: Style.spacing.sm
@@ -584,6 +675,19 @@ Column {
     }
   }
 
+    // The layout being dragged, following the pointer above the list. The Flickable's
+    // content doesn't lay out its children, so it can sit anywhere over the form.
+    LayoutThumb {
+      visible: root.dragFrom >= 0 && root.dragFrom < root.layouts.length
+      z: 10
+      width: layoutList.thumbWidth
+      height: Math.round(width * root.aspect)
+      x: root.dragPoint.x - root.dragGrab.x
+      y: root.dragPoint.y - root.dragGrab.y
+      zones: visible ? root.layouts[root.dragFrom].zones : []
+      highlighted: true
+      opacity: 0.9
+    }
   }
 
   LayoutEditor {
@@ -597,15 +701,16 @@ Column {
       var next = root.layouts.slice()
       var index = root.editingIndex
       if (index < 0) { next.push(layout); index = next.length - 1 }
-      else next[index] = layout
-      root.layouts = next
+      else next[index] = { name: layout.name, zones: layout.zones, starred: next[index].starred }
+      root.layouts = Presets.sanitizeLayouts(next)
       root.closeEditor(index)
     }
     onDeleted: {
       if (!root.editing) return
       var next = root.layouts.slice()
       next.splice(root.editingIndex, 1)
-      root.layouts = next
+      // Deleting the starred layout passes the star to the first.
+      root.layouts = Presets.sanitizeLayouts(next)
       root.closeEditor(Math.min(root.editingIndex, next.length - 1))
     }
     onCancelled: if (root.editing) root.closeEditor(root.editingIndex)

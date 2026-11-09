@@ -11,6 +11,8 @@ import "Icons.js" as Icons
 // The preset menu. Opened by the keybind it is centered and acts on the focused
 // window; opened by a right-click (hypr/omasizer.lua) it sits at the cursor and
 // acts on the window clicked, with a payload of { address, zone, x, y, width, height }.
+// The arrow keys summon it with { move: direction }: it moves the focused window
+// to the next zone of its layout and shows nothing.
 Item {
   id: root
 
@@ -51,6 +53,10 @@ Item {
   readonly property var selectedZone: root.selectedIndex < root.presetStart ? root.zoneItems[root.selectedIndex - root.zoneStart] : null
   readonly property int rowHeight: Style.font.title + Style.spacing.controlPaddingY * 2
   readonly property int contentMargin: Style.spacing.panelPadding
+  readonly property int layoutColumns: Presets.menuColumns(root.settings.layouts.length)
+  // A fifth column of layouts widens the menu by one thumbnail, so thumbnails keep their size.
+  readonly property real menuWidth: Style.space(400) + (root.layoutColumns - 4)
+    * ((Style.space(400) - root.contentMargin * 2 - Style.spacing.lg * 3) / 4 + Style.spacing.lg)
   readonly property var borderSpec: Border.surfaceSpec("menu", "border", Commons.Color.menu.border, Math.max(1, Style.space(2)))
 
   Commons.Translations { id: strings; directory: Qt.resolvedUrl("i18n") }
@@ -58,6 +64,18 @@ Item {
   function open(payloadJson) {
     var payload = ({})
     try { payload = JSON.parse(payloadJson || "{}") || ({}) } catch (e) { payload = ({}) }
+
+    if (["left", "right", "up", "down"].indexOf(payload.move) >= 0) {
+      // Pressed while the menu or settings are open (say, to record new keys), it changes nothing.
+      if (root.opened) return
+      // Read now: the overlay may have loaded for this keypress, before the file's own load arrived.
+      var current = Presets.fromShellConfig(settingsFile.text())
+      var spec = { layouts: current.layouts.map(function(l) { return l.zones }),
+        starred: Math.max(0, Presets.starredIndex(current.layouts)) }
+      root.dismiss()
+      if (spec.layouts.length) Quickshell.execDetached([root.pluginDir + "bin/omasizer", "--move", payload.move, JSON.stringify(spec)])
+      return
+    }
 
     // hypr/omasizer.lua sends every titlebar and border right-click; the settings decide which open the menu.
     if ((payload.zone === "titlebar" && !root.settings.titlebarClick)
@@ -100,7 +118,9 @@ Item {
     var command = [root.pluginDir + "bin/omasizer"]
     var item = index < root.presetStart ? root.zoneItems[index - root.zoneStart] : null
     var preset = item ? null : root.settings.presets[index - root.presetStart]
-    if (item) command = command.concat(["--zone"], item.rect.map(function(v) { return v.toFixed(6) }))
+    // The layout goes along, so the window's arrow keys keep to it.
+    if (item) command = command.concat(["--layout", JSON.stringify(root.settings.layouts[item.layout].zones), "--zone"],
+      item.rect.map(function(v) { return v.toFixed(6) }))
     else if (preset) command = command.concat([String(preset.width), String(preset.height)])
     else return
     if (root.address) command.push(root.address)
@@ -117,12 +137,12 @@ Item {
   }
 
   function save(next) {
-    if (root.shell && typeof root.shell.updateEntryInline === "function"
-        && root.shell.updateEntryInline("omasizer", next)) {
-      root.settings = next
-      root.view = "menu"
-      Qt.callLater(function() { keyCatcher.forceActiveFocus() })
-    }
+    if (!root.shell || typeof root.shell.updateEntryInline !== "function") return
+    // It returns false when nothing changed, which is still a save.
+    root.shell.updateEntryInline("omasizer", next)
+    root.settings = next
+    root.view = "menu"
+    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
 
   function move(delta) {
@@ -130,7 +150,10 @@ Item {
   }
 
   FileView {
+    id: settingsFile
     path: root.shellConfigPath
+    // A move can arrive the moment the overlay loads, before the file would load on its own.
+    blockLoading: true
     watchChanges: true
     onFileChanged: reload()
     onLoaded: root.settings = Presets.fromShellConfig(text())
@@ -161,7 +184,7 @@ Item {
       readonly property var monitor: panel.targetMonitor
       readonly property bool placeAtCursor: root.atCursor && root.view === "menu" && !!monitor
 
-      width: Math.min(root.view === "settings" ? Style.space(580) : Style.space(400), panel.width - Style.gapsOut * 2)
+      width: Math.min(root.view === "settings" ? Style.space(580) : root.menuWidth, panel.width - Style.gapsOut * 2)
       height: root.contentMargin * 2 + (root.view === "settings" ? settingsView.implicitHeight : menuColumn.implicitHeight)
       x: placeAtCursor
         ? Math.max(Style.gapsOut, Math.min(root.cursorX - monitor.x, panel.width - width - Style.gapsOut))
@@ -320,7 +343,7 @@ Item {
         Flow {
           id: layoutFlow
           visible: root.zoneItems.length > 0
-          readonly property int columns: 4
+          readonly property int columns: root.layoutColumns
           readonly property real thumbWidth: Math.floor((width - spacing * (columns - 1)) / columns)
           width: parent.width
           spacing: Style.spacing.lg

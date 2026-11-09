@@ -1,19 +1,25 @@
 -- OmaSizer for Hyprland: a keyboard shortcut (Super + Alt + Z by default) opens
--- the menu for the focused window, and a right-click on a floating window's
+-- the menu for the focused window, a right-click on a floating window's
 -- titlebar (its buttons included) or its resize border opens it at the cursor
--- for that window.
+-- for that window, and modifiers with an arrow key (Super + Ctrl + Alt by
+-- default) move the focused window to the next zone of its layout.
 --
 -- OmaSizer's shell service loads this file with `hyprctl eval` when the shell
 -- starts and after every config reload, first setting `omasizer_shortcut` to
--- the shortcut to bind, or "" for none, and `omasizer_clicks` to which
--- right-clicks open the menu. Loaded from bindings.lua instead, the defaults
--- apply. Loading it again only changes what differs.
+-- the shortcut to bind, or "" for none, `omasizer_clicks` to which right-clicks
+-- open the menu, and `omasizer_move` to the modifiers for the arrows, or "" for
+-- none. Loaded from bindings.lua instead, the defaults apply. It also sets
+-- `omasizer_owner`, a token of the service instance; with `omasizer_unload` set to
+-- that token instead, the file removes everything it bound, if that instance still owns it. Loading it again only changes what differs.
 
 local M = {}
 
 M.DEFAULT_SHORTCUT = "SUPER + ALT + Z"
 -- Marks the binding in `hyprctl binds`, so the service can tell it from others; Presets.js uses the same text.
 M.DESCRIPTION = "OmaSizer: open the menu"
+M.DEFAULT_MOVE = "SUPER + CTRL + ALT"
+M.MOVE_DESCRIPTION = "OmaSizer: move between zones"
+M.ARROWS = { LEFT = "left", RIGHT = "right", UP = "up", DOWN = "down" }
 
 local WORKSPACE_TAG = "omarchy-floating-workspace" -- windows Omarchy's floating mode gives titlebars
 
@@ -42,18 +48,34 @@ function M.zone(window, x, y, bar, grab)
   end
 end
 
+-- How high a window stacks, as Hyprland's own hit test orders them: pinned windows,
+-- then the shown special workspace, then the rest, which Hyprland lists bottom to top.
+local function stack_tier(window)
+  if window.pinned then
+    return 3
+  elseif window.workspace and window.workspace.special then
+    return 2
+  end
+  return 1
+end
+
 -- The floating window whose titlebar or border is under the point, and which of
--- the two, if no window above it covers the point. Hyprland lists windows bottom to top.
--- shortcut: layer surfaces such as the bar are not checked, so a click on a layer over a titlebar also opens the menu; check hl.get_layers() if that bites.
+-- the two, if no window above it covers the point. Only windows on a shown workspace
+-- (or pinned) count: windows on other workspaces still report themselves visible.
 function M.target(windows, x, y, bar, grab)
-  local hit, hit_zone
+  local hit, hit_zone, hit_tier = nil, nil, 0
 
   for _, window in ipairs(windows) do
-    if window.visible and window.mapped and not window.hidden then
+    local shown = window.pinned or (window.workspace and window.workspace.visible)
+    if shown and window.visible and window.mapped and not window.hidden then
       local floating = window.floating and window.fullscreen == 0
-      local zone = M.zone(window, x, y, (floating and has_tag(window, WORKSPACE_TAG)) and bar or 0, floating and grab or 0)
-      if zone then
-        hit, hit_zone = window, zone
+      local titled = floating and has_tag(window, WORKSPACE_TAG)
+      -- XWayland popups and tooltips are floating windows too; only titled ones get the grab band.
+      local banded = floating and (titled or not window.xwayland)
+      local zone = M.zone(window, x, y, titled and bar or 0, banded and grab or 0)
+      local tier = stack_tier(window)
+      if zone and tier >= hit_tier then
+        hit, hit_zone, hit_tier = window, zone, tier
       end
     end
   end
@@ -61,6 +83,33 @@ function M.target(windows, x, y, bar, grab)
   if hit and hit_zone ~= "content" then
     return hit, hit_zone
   end
+end
+
+-- Whether the point is in the monitor's reserved edge, where the bar sits above any window.
+-- shortcut: other layers (dock, notifications) are not checked, since Hyprland only gives their full-size boxes, not where they take clicks.
+function M.reserved_at(monitor, x, y)
+  local r = monitor.reserved
+  if type(r) ~= "table" then
+    return false
+  end
+  local rotated = monitor.transform % 2 == 1
+  local width = (rotated and monitor.height or monitor.width) / monitor.scale
+  local height = (rotated and monitor.width or monitor.height) / monitor.scale
+  return x < monitor.x + (r.left or 0) or x >= monitor.x + width - (r.right or 0)
+    or y < monitor.y + (r.top or 0) or y >= monitor.y + height - (r.bottom or 0)
+end
+
+-- Whether a layer that takes the keyboard (a launcher, a menu, a panel, OmaSizer's own
+-- overlay) covers the point: the click is that layer's, whatever titlebar lies under it.
+-- The bar and notifications take no keyboard and span the screen, so they can't be told apart.
+function M.overlay_at(layers, x, y)
+  for _, l in ipairs(layers) do
+    if l.mapped and l.layer >= 2 and (l.interactivity or 0) ~= 0
+        and x >= l.x and x < l.x + l.w and y >= l.y and y < l.y + l.h then
+      return true
+    end
+  end
+  return false
 end
 
 -- How far the pointer may travel between press and release for a right-click to count as one.
@@ -81,8 +130,11 @@ end
 -- passes through. The menu opens on the release, so the release is swallowed too.
 local pressed
 
-local function on_right_press()
+local function claim_press()
   local cursor = hl.get_cursor_pos()
+  if not cursor or M.overlay_at(hl.get_layers(), cursor.x, cursor.y) then
+    return nil
+  end
   local bar = config_number("plugin.hyprbars.bar_height", 30)
   local grab = config_number("general.border_size", 0)
 
@@ -91,16 +143,28 @@ local function on_right_press()
     grab = grab + config_number("general.extend_border_grab_area", 0)
   end
 
-  local window, zone = M.target(hl.get_windows(), cursor.x, cursor.y, bar, grab)
+  local monitor = hl.get_monitor_at(cursor.x, cursor.y)
+  local window, zone
+  if not (monitor and M.reserved_at(monitor, cursor.x, cursor.y)) then
+    window, zone = M.target(hl.get_windows(), cursor.x, cursor.y, bar, grab)
+  end
   local clicks = (_G.omasizer_state or {}).clicks or {}
-  pressed = (window and clicks[zone] ~= false) and { window = window, zone = zone, x = cursor.x, y = cursor.y } or nil
+  if window and clicks[zone] ~= false then
+    return { window = window, zone = zone, x = cursor.x, y = cursor.y }
+  end
+end
+
+-- This bind consumes the press unless told to pass it, and a callback that fails tells
+-- Hyprland nothing, which would swallow every right-click. So any error passes it on.
+local function on_right_press()
+  local ok, press = pcall(claim_press)
+  pressed = ok and press or nil
   return { pass_event = pressed == nil }
 end
 
-local function on_right_release()
-  local press = pressed
-  pressed = nil
-  if not press or not M.is_click(press, hl.get_cursor_pos()) then
+local function open_menu(press)
+  local cursor = hl.get_cursor_pos()
+  if not cursor or not M.is_click(press, cursor) then
     return
   end
 
@@ -111,12 +175,22 @@ local function on_right_release()
   hl.exec_cmd("omarchy-shell shell summon omasizer '" .. payload .. "'")
 end
 
+-- The window may have closed since the press; whatever fails, the menu just doesn't open.
+local function on_right_release()
+  local press = pressed
+  pressed = nil
+  if press then
+    pcall(open_menu, press)
+  end
+end
+
 -- Hyprland keeps this table until its config reloads, which also drops these binds.
 -- `clicks` maps "titlebar" and "border" to false to leave those right-clicks alone.
-function M.register(shortcut, clicks)
+function M.register(shortcut, clicks, move, owner)
   local state = _G.omasizer_state or {}
   _G.omasizer_state = state
   state.clicks = clicks
+  state.owner = owner
 
   if not state.mouse then
     -- The press handler decides per click whether the app gets it.
@@ -135,14 +209,61 @@ function M.register(shortcut, clicks)
     end
     state.shortcut = shortcut
   end
+
+  move = move or ""
+  if state.move ~= move then
+    -- The overlay runs the move: it holds the layouts, and opens nothing for it.
+    for key, direction in pairs(M.ARROWS) do
+      if state.move and state.move ~= "" then
+        hl.unbind(state.move .. " + " .. key)
+      end
+      if move ~= "" then
+        hl.bind(move .. " + " .. key, hl.dsp.exec_cmd("omarchy-shell shell summon omasizer '{\"move\":\"" .. direction .. "\"}'"),
+          { description = M.MOVE_DESCRIPTION })
+      end
+    end
+    state.move = move
+  end
 end
 
-if hl and hl.bind then
+-- Remove every bind this file made. A service that is going away calls it with its own
+-- token; if a newer service has registered since, the binds are that one's and stay.
+function M.unregister(owner)
+  local state = _G.omasizer_state
+  if not state or state.owner ~= owner then
+    return
+  end
+  -- Never Keybind:remove(): it removes every bind on the same keys, and calling it on the
+  -- second, already removed one crashes Hyprland 0.56 (a null dereference in keybindRemove).
+  -- shortcut: this also removes a plain right-click bind of the user's own, until the next reload.
+  if state.mouse then
+    hl.unbind("mouse:273")
+  end
+  if state.shortcut and state.shortcut ~= "" then
+    hl.unbind(state.shortcut)
+  end
+  if state.move and state.move ~= "" then
+    for key in pairs(M.ARROWS) do
+      hl.unbind(state.move .. " + " .. key)
+    end
+  end
+  _G.omasizer_state = nil
+end
+
+if hl and hl.bind and _G.omasizer_unload then
+  M.unregister(_G.omasizer_unload)
+  -- Cleared, so a later load of this file without the service registers again.
+  _G.omasizer_unload = nil
+elseif hl and hl.bind then
   local shortcut = _G.omasizer_shortcut
   if shortcut == nil then
     shortcut = M.DEFAULT_SHORTCUT
   end
-  M.register(shortcut, _G.omasizer_clicks)
+  local move = _G.omasizer_move
+  if move == nil then
+    move = M.DEFAULT_MOVE
+  end
+  M.register(shortcut, _G.omasizer_clicks, move, _G.omasizer_owner)
 end
 
 return M

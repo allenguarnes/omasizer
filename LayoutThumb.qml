@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Commons
 import qs.Commons as Commons
+import "Icons.js" as Icons
 
 // A layout drawn as a small screen. The menu picks single zones from it; the
 // settings list treats the whole thumbnail as one control.
@@ -14,9 +15,13 @@ Rectangle {
   // Marks the layout holding the menu's selection, more quietly than `highlighted`.
   property bool active: false
   property bool zonesInteractive: false
+  // The settings list shows a star: filled on the starred layout, an outline to click on the others.
+  property bool starShown: false
+  property bool starred: false
 
   signal zoneHovered(int index, var item, var mouse)
   signal zoneClicked(int index)
+  signal starClicked()
 
   readonly property color faint: Qt.rgba(Commons.Color.menu.text.r, Commons.Color.menu.text.g, Commons.Color.menu.text.b, 0.25)
 
@@ -54,6 +59,32 @@ Rectangle {
         onPositionChanged: function(mouse) { root.zoneHovered(zoneRect.index, zoneRect, mouse) }
         onClicked: root.zoneClicked(zoneRect.index)
       }
+    }
+  }
+
+  Text {
+    id: star
+    visible: root.starShown && (root.starred || root.highlighted || starMouse.containsMouse)
+    z: 2
+    anchors.top: parent.top
+    anchors.right: parent.right
+    anchors.margins: Style.space(3)
+    text: root.starred ? Icons.star : Icons.starOutline
+    color: root.starred ? Commons.Color.accent : Commons.Color.menu.text
+    opacity: root.starred || starMouse.containsMouse ? 1 : 0.6
+    style: Text.Outline
+    styleColor: Commons.Color.menu.background
+    font.family: Style.font.family
+    font.pixelSize: Style.font.heading
+
+    MouseArea {
+      id: starMouse
+      anchors.fill: parent
+      anchors.margins: -Style.space(3)
+      enabled: root.starShown
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: root.starClicked()
     }
   }
 }

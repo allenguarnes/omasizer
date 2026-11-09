@@ -13,5 +13,7 @@ var done = "󰄬" // U+F012C
 var close = "󰅖" // U+F0156
 var sizes = "󰍹" // U+F0379
 var keyboard = "󰌌" // U+F030C
+var star = "\u{F04CE}" // md-star
+var starOutline = "\u{F04D2}" // md-star-outline
 var splitColumns = "\u25EB" // ◫
 var splitRows = "\u229F" // ⊟

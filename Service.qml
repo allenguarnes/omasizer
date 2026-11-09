@@ -4,10 +4,10 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import "Presets.js" as Presets
 
-// Gives Hyprland OmaSizer's keyboard shortcut and right-click hook at runtime, so
-// nobody edits their config: when the shell starts, after every Hyprland config
-// reload (which drops runtime binds), and when the shortcut setting changes. A
-// shortcut that something else already uses is left to it, and the user is told once.
+// Gives Hyprland OmaSizer's keyboard shortcut, arrow keys and right-click hook at
+// runtime, so nobody edits their config: when the shell starts, after every
+// Hyprland config reload (which drops runtime binds), and when those settings
+// change. Keys that something else already uses are left to it, and the user is told once.
 Item {
   id: root
 
@@ -22,13 +22,24 @@ Item {
   property string blockedShortcut: ""
   property string blockedBy: ""
   property string notifiedShortcut: ""
+  // The same for the arrow keys' modifiers.
+  property string blockedMove: ""
+  property string blockedMoveBy: ""
+  property string notifiedMove: ""
   property bool registerAgain: false
+  // Marks the binds this instance makes, so its teardown never removes a newer instance's.
+  readonly property string owner: String(Date.now()) + String(Math.floor(Math.random() * 1e6))
+  readonly property string hookPath: root.pluginDir + "hypr/omasizer.lua"
 
   readonly property string pluginDir: Qt.resolvedUrl(".").toString().replace(/^file:\/\//, "")
   readonly property string shellConfigPath: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/omarchy/shell.json"
 
   function conflictFor(shortcut) {
     return Presets.bindConflict(root.binds, shortcut)
+  }
+
+  function moveConflictFor(modifiers) {
+    return Presets.moveConflict(root.binds, modifiers)
   }
 
   function refreshBinds() {
@@ -50,7 +61,8 @@ Item {
 
   function loadHook() {
     var wanted = root.settings.shortcut
-    var holder = wanted ? root.conflictFor(wanted) : null
+    var holder = wanted ? root.conflictFor(wanted)
+      || (Presets.ownConflict(wanted, root.settings.moveKeys) ? Presets.MOVE_DESCRIPTION : null) : null
     root.blockedShortcut = holder ? wanted : ""
     root.blockedBy = holder || ""
 
@@ -61,15 +73,30 @@ Item {
         wanted + " is already used by “" + holder + "”. Choose another in OmaSizer's settings."])
     }
 
-    // Both values go into Lua source, so each must be exactly the safe form checked here.
-    var hook = root.pluginDir + "hypr/omasizer.lua"
+    var wantedMove = root.settings.moveKeys
+    var moveHolder = wantedMove ? root.moveConflictFor(wantedMove) : null
+    root.blockedMove = moveHolder ? wantedMove : ""
+    root.blockedMoveBy = moveHolder || ""
+
+    if (moveHolder && root.notifiedMove !== wantedMove) {
+      root.notifiedMove = wantedMove
+      Quickshell.execDetached(["omarchy-notification-send", "-g", "\u{F030C}",
+        "OmaSizer arrow keys not set",
+        wantedMove + " + arrows are already used by “" + moveHolder + "”. Choose other keys in OmaSizer's settings."])
+    }
+
+    // These values go into Lua source, so each must be exactly the safe form checked here.
+    var hook = root.hookPath
     var shortcut = holder ? "" : wanted
-    if (!/^[A-Za-z0-9_\/.\-]+$/.test(hook) || (shortcut !== "" && Presets.normalizeShortcut(shortcut) !== shortcut)) {
+    var move = moveHolder ? "" : wantedMove
+    if (!/^[A-Za-z0-9_\/.\-]+$/.test(hook) || (shortcut !== "" && Presets.normalizeShortcut(shortcut) !== shortcut)
+        || (move !== "" && Presets.normalizeModifiers(move) !== move)) {
       console.warn("omasizer: refusing to load the Hyprland hook from", hook)
       return
     }
     var clicks = "{ titlebar = " + (root.settings.titlebarClick !== false) + ", border = " + (root.settings.borderClick !== false) + " }"
-    hookLoader.command = ["hyprctl", "eval", "omasizer_shortcut = \"" + shortcut + "\" omasizer_clicks = " + clicks + " dofile(\"" + hook + "\")"]
+    hookLoader.command = ["hyprctl", "eval", "omasizer_unload = nil omasizer_owner = \"" + root.owner + "\" omasizer_shortcut = \"" + shortcut
+      + "\" omasizer_clicks = " + clicks + " omasizer_move = \"" + move + "\" dofile(\"" + hook + "\")"]
     hookLoader.running = true
   }
 
@@ -79,7 +106,7 @@ Item {
     onFileChanged: reload()
     onLoaded: {
       var next = Presets.fromShellConfig(text())
-      var changed = !root.settingsLoaded || next.shortcut !== root.settings.shortcut
+      var changed = !root.settingsLoaded || next.shortcut !== root.settings.shortcut || next.moveKeys !== root.settings.moveKeys
         || next.titlebarClick !== root.settings.titlebarClick || next.borderClick !== root.settings.borderClick
       root.settings = next
       root.settingsLoaded = true
@@ -108,6 +135,9 @@ Item {
       if (registering) {
         registering = false
         root.loadHook()
+      } else if (root.registerAgain) {
+        // A register that arrived during a plain read (Settings refreshing the list).
+        root.register()
       }
     }
   }
@@ -119,6 +149,13 @@ Item {
       onStreamFinished: if (text.trim() !== "ok") console.warn("omasizer: hyprctl eval said:", text.trim())
     }
     onExited: if (root.registerAgain) root.register()
+  }
+
+  // Turning OmaSizer off, or the shell going away, takes its keys and right-click hook
+  // with it; Hyprland would otherwise keep them until its config reloads.
+  Component.onDestruction: {
+    if (/^[A-Za-z0-9_\/.\-]+$/.test(root.hookPath))
+      Quickshell.execDetached(["hyprctl", "eval", "omasizer_unload = \"" + root.owner + "\" dofile(\"" + root.hookPath + "\")"])
   }
 
   Connections {

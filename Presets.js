@@ -1,8 +1,8 @@
 // OmaSizer's settings live in its entry in ~/.config/omarchy/shell.json:
 // { "id": "omasizer", "presets": [{ label, width, height }], "center": true, "clamp": true,
-//   "titlebarClick": true, "borderClick": true,
-//   "layouts": [{ name, zones: [[x, y, width, height], ...] }],
-//   "outerGap": 10, "innerGap": 10, "shortcut": "SUPER + ALT + Z" }
+//   "titlebarClick": true, "borderClick": true, "swap": true,
+//   "layouts": [{ name, zones: [[x, y, width, height], ...], starred }],
+//   "outerGap": 10, "innerGap": 10, "shortcut": "SUPER + ALT + Z", "moveKeys": "SUPER + CTRL + ALT" }
 // The gaps are logical pixels: from the screen edges, and between two zones.
 // Until they are saved, zones use Hyprland's own gaps_out and twice gaps_in.
 // Zones are fractions (0 to 1) of the monitor's usable area.
@@ -25,8 +25,16 @@ var DEFAULT_LAYOUTS = [
   { name: "75:25 main + side", zones: [[0, 0, 0.75, 1], [0.75, 0, 0.25, 1]] },
   { name: "25:75 side + main", zones: [[0, 0, 0.25, 1], [0.25, 0, 0.75, 1]] },
   { name: "25:50:25 main + sides", zones: [[0, 0, 0.25, 1], [0.25, 0, 0.5, 1], [0.75, 0, 0.25, 1]] },
-  { name: "Quadrants", zones: [[0, 0, 0.5, 0.5], [0.5, 0, 0.5, 0.5], [0, 0.5, 0.5, 0.5], [0.5, 0.5, 0.5, 0.5]] }
+  { name: "Quadrants", zones: [[0, 0, 0.5, 0.5], [0.5, 0, 0.5, 0.5], [0, 0.5, 0.5, 0.5], [0.5, 0.5, 0.5, 0.5]] },
+  { name: "Fullscreen", zones: [[0, 0, 1, 1]] }
 ]
+
+// How many layouts the menu shows in a row: four, or five when that leaves fewer
+// gaps in the last row (nine layouts fill 5 + 4 rather than 4 + 4 + 1).
+function menuColumns(count) {
+  var empty = function(columns) { return (columns - count % columns) % columns }
+  return empty(5) < empty(4) ? 5 : 4
+}
 
 var MAX_LAYOUTS = 20
 var MAX_ZONES = 16
@@ -36,8 +44,13 @@ var MAX_GAP = 200
 // The keyboard shortcut that opens the menu: modifiers and one key, in Hyprland's
 // "SUPER + ALT + Z" form, or "" for none. The service registers it at runtime.
 var DEFAULT_SHORTCUT = "SUPER + ALT + Z"
-// Marks OmaSizer's own binding in `hyprctl binds`; hypr/omasizer.lua uses the same text.
+// Marks OmaSizer's own bindings in `hyprctl binds`; hypr/omasizer.lua uses the same text.
 var BIND_DESCRIPTION = "OmaSizer: open the menu"
+var MOVE_DESCRIPTION = "OmaSizer: move between zones"
+// The modifiers that, with an arrow key, move the focused window to the next zone
+// of its layout: "" for none. The service binds all four arrows with them.
+var DEFAULT_MOVE_KEYS = "SUPER + CTRL + ALT"
+var ARROWS = ["LEFT", "RIGHT", "UP", "DOWN"]
 var MODIFIERS = ["SUPER", "CTRL", "ALT", "SHIFT"]
 var MODIFIER_MASKS = { SUPER: 64, CTRL: 4, ALT: 8, SHIFT: 1 }
 var SHORTCUT_KEY = /^(?:[A-Z0-9]|F(?:[1-9]|1[0-2])|LEFT|RIGHT|UP|DOWN|SPACE|RETURN|HOME|END|PAGEUP|PAGEDOWN|INSERT|DELETE|SLASH|BACKSLASH|COMMA|PERIOD|MINUS|EQUAL|GRAVE|SEMICOLON|APOSTROPHE|BRACKETLEFT|BRACKETRIGHT)$/
@@ -55,8 +68,30 @@ function normalizeShortcut(value) {
   return MODIFIERS.filter(function(m) { return parts.indexOf(m) >= 0 }).concat([key]).join(" + ")
 }
 
+// Modifiers alone in canonical form ("ctrl+super" becomes "SUPER + CTRL"), or null.
+function normalizeModifiers(value) {
+  var combo = typeof value === "string" ? normalizeShortcut(value + " + LEFT") : null
+  return combo ? combo.slice(0, -" + LEFT".length) : null
+}
+
+// What already uses one of the four arrows with `modifiers`, or null when all are free.
+function moveConflict(binds, modifiers) {
+  for (var i = 0; modifiers && i < ARROWS.length; i++) {
+    var holder = bindConflict(binds, modifiers + " + " + ARROWS[i])
+    if (holder) return holder
+  }
+  return null
+}
+
+// Whether `shortcut` is one of the arrows OmaSizer binds with `moveKeys`: both would be bound,
+// and changing either later would unbind the other.
+function ownConflict(shortcut, moveKeys) {
+  var combo = normalizeShortcut(shortcut)
+  return !!combo && !!moveKeys && ARROWS.some(function(a) { return combo === moveKeys + " + " + a })
+}
+
 // What already uses `shortcut` among `hyprctl -j binds`, as a short description, or
-// null when it is free. OmaSizer's own binding and mouse bindings don't count.
+// null when it is free. OmaSizer's own bindings and mouse bindings don't count.
 function bindConflict(binds, shortcut) {
   var combo = normalizeShortcut(shortcut)
   if (!combo || !Array.isArray(binds)) return null
@@ -65,7 +100,7 @@ function bindConflict(binds, shortcut) {
   var mask = parts.reduce(function(sum, m) { return sum + MODIFIER_MASKS[m] }, 0)
   for (var i = 0; i < binds.length; i++) {
     var b = binds[i] || {}
-    if (b.mouse || b.submap || b.description === BIND_DESCRIPTION) continue
+    if (b.mouse || b.submap || b.description === BIND_DESCRIPTION || b.description === MOVE_DESCRIPTION) continue
     if (Number(b.modmask) === mask && String(b.key).toUpperCase() === key)
       return String(b.description || [b.dispatcher, b.arg].filter(Boolean).join(" ") || "another shortcut").slice(0, 80)
   }
@@ -104,6 +139,7 @@ function validZone(zone) {
 }
 
 // Keep the layouts with 1 to 16 valid zones, with names cut to 40 characters.
+// Exactly one is starred: the first marked, or else the first.
 function sanitizeLayouts(list) {
   if (!Array.isArray(list)) return []
   var layouts = []
@@ -111,9 +147,30 @@ function sanitizeLayouts(list) {
     var layout = list[i] || {}
     var zones = Array.isArray(layout.zones) ? layout.zones : []
     if (zones.length < 1 || zones.length > MAX_ZONES || !zones.every(validZone)) continue
-    layouts.push({ name: String(layout.name || "").slice(0, 40), zones: zones.map(function(z) { return z.slice() }) })
+    layouts.push({ name: String(layout.name || "").slice(0, 40), zones: zones.map(function(z) { return z.slice() }), starred: layout.starred === true })
   }
-  return layouts
+  var star = Math.max(0, starredIndex(layouts))
+  return layouts.map(function(l, i) {
+    var kept = { name: l.name, zones: l.zones }
+    if (i === star) kept.starred = true
+    return kept
+  })
+}
+
+// The starred layout's index, or -1 when none is.
+function starredIndex(layouts) {
+  for (var i = 0; i < layouts.length; i++)
+    if (layouts[i] && layouts[i].starred === true) return i
+  return -1
+}
+
+// A copy of `layouts` with only the one at `index` starred.
+function starLayout(layouts, index) {
+  return layouts.map(function(l, i) {
+    var next = { name: l.name, zones: l.zones }
+    if (i === index) next.starred = true
+    return next
+  })
 }
 
 // A copy of `list` with the item at `from` moved to `to`; the same list when either is out of range.
@@ -199,8 +256,10 @@ function fromShellConfig(text) {
     clamp: entry.clamp !== false,
     titlebarClick: entry.titlebarClick !== false,
     borderClick: entry.borderClick !== false,
+    swap: entry.swap !== false,
     layouts: Array.isArray(entry.layouts) ? sanitizeLayouts(entry.layouts) : defaultLayouts(),
     shortcut: entry.shortcut === "" ? "" : normalizeShortcut(entry.shortcut) || DEFAULT_SHORTCUT,
+    moveKeys: entry.moveKeys === "" ? "" : normalizeModifiers(entry.moveKeys) || DEFAULT_MOVE_KEYS,
     outerGap: gap(entry.outerGap),
     innerGap: gap(entry.innerGap)
   }

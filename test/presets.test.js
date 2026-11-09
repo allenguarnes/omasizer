@@ -13,7 +13,8 @@ for (const config of ["not json", {}, { plugins: [{ id: "other", presets: [] }] 
   assert.strictEqual(settings.clamp, true)
   assert.strictEqual(settings.titlebarClick, true)
   assert.strictEqual(settings.borderClick, true)
-  assert.strictEqual(settings.layouts.length, 8)
+  assert.strictEqual(settings.swap, true)
+  assert.strictEqual(settings.layouts.length, 9)
   assert.strictEqual(settings.outerGap, null)
   assert.strictEqual(settings.innerGap, null)
 }
@@ -36,14 +37,14 @@ for (const layout of read({}).layouts) {
 assert.deepStrictEqual(read({ plugins: [{ id: "omasizer", layouts: [
   { name: "Ok", zones: [[0, 0, 1, 1]] }, { name: "Off", zones: [[0.5, 0, 0.6, 1]] }, { name: "Empty", zones: [] },
   { name: "Text", zones: [[0, 0, "1", 1]] }, { zones: [[0, 0, 0, 1]] }
-] }] }).layouts, [{ name: "Ok", zones: [[0, 0, 1, 1]] }])
+] }] }).layouts, [{ name: "Ok", zones: [[0, 0, 1, 1]], starred: true }])
 assert.deepStrictEqual(read({ plugins: [{ id: "omasizer", layouts: [] }] }).layouts, [])
 
 // A saved entry wins, with invalid presets dropped and an empty list kept empty.
-assert.deepStrictEqual(read({ plugins: [{ id: "omasizer", center: false, clamp: false, titlebarClick: false, borderClick: false, presets: [
+assert.deepStrictEqual(read({ plugins: [{ id: "omasizer", center: false, clamp: false, titlebarClick: false, borderClick: false, swap: false, presets: [
   { width: 800, height: 600 }, { width: "x", height: 1 }, { width: -5, height: 5 }, { width: 1.5, height: 2 },
   { width: 20000, height: 5 }, { label: "Big", width: "1920", height: 1080 }
-] }] }), { presets: [{ label: "", width: 800, height: 600 }, { label: "Big", width: 1920, height: 1080 }], center: false, clamp: false, titlebarClick: false, borderClick: false, layouts: read({}).layouts, outerGap: null, innerGap: null, shortcut: "SUPER + ALT + Z" })
+] }] }), { presets: [{ label: "", width: 800, height: 600 }, { label: "Big", width: 1920, height: 1080 }], center: false, clamp: false, titlebarClick: false, borderClick: false, swap: false, layouts: read({}).layouts, outerGap: null, innerGap: null, shortcut: "SUPER + ALT + Z", moveKeys: "SUPER + CTRL + ALT" })
 assert.deepStrictEqual(read({ plugins: [{ id: "omasizer", presets: [] }] }).presets, [])
 assert.strictEqual(plain(ctx.sanitize(Array(80).fill({ width: 1, height: 1 }))).length, 50)
 
@@ -97,5 +98,36 @@ assert.strictEqual(ctx.bindConflict(binds, "SUPER + RETURN"), "Terminal")
 assert.strictEqual(ctx.bindConflict(binds, "SUPER + CTRL + ALT + Z"), "exec zoom")
 assert.strictEqual(ctx.bindConflict(binds, "SUPER + T"), null)
 assert.strictEqual(ctx.bindConflict(binds, ""), null)
+
+// The menu fills its last row of layouts as well as four or five to a row can.
+assert.deepStrictEqual([1, 4, 5, 6, 7, 8, 9, 10, 11, 13, 20].map(ctx.menuColumns), [4, 4, 5, 4, 4, 4, 5, 5, 4, 5, 4])
+
+// Exactly one layout is starred: the first marked, or the first; it follows the layout when reordered.
+assert.strictEqual(ctx.starredIndex(read({}).layouts), 0)
+const two = [{ name: "A", zones: [[0, 0, 1, 1]] }, { name: "B", zones: [[0, 0, 1, 1]], starred: true }, { name: "C", zones: [[0, 0, 1, 1]], starred: true }]
+assert.deepStrictEqual(plain(ctx.sanitizeLayouts(two)).map(l => !!l.starred), [false, true, false])
+assert.deepStrictEqual(plain(ctx.starLayout(two, 2)).map(l => !!l.starred), [false, false, true])
+assert.strictEqual(ctx.starredIndex(plain(ctx.moveItem(ctx.sanitizeLayouts(two), 1, 0))), 0)
+assert.strictEqual(ctx.starredIndex([]), -1)
+
+// Move keys: modifiers only, and every arrow must be free.
+assert.strictEqual(read({}).moveKeys, "SUPER + CTRL + ALT")
+assert.strictEqual(read({ plugins: [{ id: "omasizer", moveKeys: "" }] }).moveKeys, "")
+assert.strictEqual(read({ plugins: [{ id: "omasizer", moveKeys: "alt+super" }] }).moveKeys, "SUPER + ALT")
+for (const bad of ["SUPER + LEFT", "", "HYPER", "SUPER + SUPER", 42])
+  assert.strictEqual(ctx.normalizeModifiers(bad), null, String(bad))
+const arrows = [
+  { modmask: 77, key: "LEFT", description: "OmaSizer: move between zones" },
+  { modmask: 73, key: "UP", description: "Move workspace to up monitor" }
+]
+assert.strictEqual(ctx.moveConflict(arrows, "SUPER + CTRL + ALT + SHIFT"), null)
+assert.strictEqual(ctx.moveConflict(arrows, "SUPER + ALT + SHIFT"), "Move workspace to up monitor")
+assert.strictEqual(ctx.moveConflict(arrows, ""), null)
+
+// The menu shortcut can't be one of OmaSizer's own arrows.
+assert.strictEqual(ctx.ownConflict("super+ctrl+alt+left", "SUPER + CTRL + ALT"), true)
+assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + Z", "SUPER + CTRL + ALT"), false)
+assert.strictEqual(ctx.ownConflict("SUPER + ALT + LEFT", "SUPER + CTRL + ALT"), false)
+assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + LEFT", ""), false)
 
 console.log("ok")

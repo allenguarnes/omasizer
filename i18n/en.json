@@ -34,7 +34,7 @@
   "editor.delete": "Delete layout",
   "editor.invalid": "Zones must fit the screen",
   "editor.done": "Done",
-  "settings.layoutsHint": "Drag or Alt+←/→ to reorder",
+  "settings.layoutsHint": "Drag or Alt+←/→ to reorder · S to star",
   "settings.restoreLayouts": "Restore defaults",
   "sizes": "Sizes",
   "settings.presets": "Size presets",
@@ -49,5 +49,12 @@
   "settings.shortcutListening": "Press a shortcut…",
   "settings.shortcutDefault": "Use Super + Alt + Z",
   "settings.shortcutTaken": "Already used by “%1”. OmaSizer leaves it alone; pick another shortcut.",
-  "settings.shortcutHint": "Click the field and press a combination with at least one modifier. Backspace turns it off."
+  "settings.shortcutHint": "Click the field and press a combination with at least one modifier. Backspace turns it off.",
+  "settings.moveZones": "Move between zones",
+  "settings.moveKeys": "Modifiers + arrow keys",
+  "settings.moveListening": "Hold modifiers, let go…",
+  "settings.moveDefault": "Use Super + Ctrl + Alt",
+  "settings.moveTaken": "An arrow with these is already used by “%1”. OmaSizer leaves them alone; pick other keys.",
+  "settings.moveHint": "Moves the focused window to the next zone of the layout it was placed from, or of the starred layout. Click the field, hold the modifiers and let go; Backspace turns it off.",
+  "settings.swap": "Swap with a window already in the zone"
 }
