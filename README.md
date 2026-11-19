@@ -18,6 +18,7 @@ Omarchy 4.5's floating workspaces give every window a titlebar and the freedom t
 - **Visual zone editor.** Drag zones, resize them by their edges, split and name them. Everything snaps to a grid, so halves, thirds and quarters line up exactly.
 - **Settings in the overlay.** Presets, layouts, gaps and behavior can all be changed with the mouse or entirely from the keyboard.
 - **Feels native.** It follows your Omarchy theme and uses Omarchy's own UI components.
+- **Speaks your language.** Every language Omarchy offers under Setup > Language, 50 in all, right-to-left ones included. It switches along with the shell, no restart needed.
 
 ## Requirements
 

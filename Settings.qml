@@ -639,16 +639,20 @@ Column {
         : root.strings.t("settings.moveHint")
     }
 
+    // On its own line: next to the buttons, a long translation would run into them.
+    Label {
+      width: parent.width
+      visible: !root.valid
+      wrapMode: Text.WordWrap
+      horizontalAlignment: Text.AlignRight
+      text: root.strings.t("settings.invalid")
+      color: Commons.Color.urgent
+    }
+
     Row {
       anchors.right: parent.right
       spacing: Style.spacing.sm
 
-      Label {
-        height: parent.height
-        visible: !root.valid
-        text: root.strings.t("settings.invalid")
-        color: Commons.Color.urgent
-      }
       // Cancel and Save share one size, the larger of the two.
       Button {
         id: cancelButton

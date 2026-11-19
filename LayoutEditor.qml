@@ -316,6 +316,16 @@ Column {
     }
   }
 
+  // On its own line: next to the buttons, a long translation would run into them.
+  Label {
+    width: parent.width
+    visible: !root.valid
+    wrapMode: Text.WordWrap
+    horizontalAlignment: Text.AlignRight
+    text: root.strings.t("editor.invalid")
+    color: Commons.Color.urgent
+  }
+
   Item {
     width: parent.width
     height: doneRow.height
@@ -336,12 +346,6 @@ Column {
       anchors.right: parent.right
       spacing: Style.spacing.sm
 
-      Label {
-        height: parent.height
-        visible: !root.valid
-        text: root.strings.t("editor.invalid")
-        color: Commons.Color.urgent
-      }
       // Cancel and Done share one size, the larger of the two.
       Button {
         id: cancelButton
