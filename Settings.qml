@@ -140,7 +140,7 @@ Column {
   function editLayout(index) {
     if (index < 0 && root.layouts.length >= Presets.MAX_LAYOUTS) return
     root.editingIndex = index
-    editor.load(index >= 0 ? root.layouts[index] : { name: "", zones: [[0, 0, 1, 1]] }, index < 0)
+    editorLoader.item.load(index >= 0 ? root.layouts[index] : { name: "", zones: [[0, 0, 1, 1]] }, index < 0)
   }
 
   // Back to the settings list, with focus on the layout just edited, or New layout.
@@ -694,29 +694,33 @@ Column {
     }
   }
 
-  LayoutEditor {
-    id: editor
+  // Created only while editing, for the same clipboard reason as Settings itself.
+  Loader {
+    id: editorLoader
     width: parent.width
-    visible: root.editing
-    strings: root.strings
-    aspect: root.aspect
-    onDone: function(layout) {
-      if (!root.editing) return
-      var next = root.layouts.slice()
-      var index = root.editingIndex
-      if (index < 0) { next.push(layout); index = next.length - 1 }
-      else next[index] = { name: layout.name, zones: layout.zones, starred: next[index].starred }
-      root.layouts = Presets.sanitizeLayouts(next)
-      root.closeEditor(index)
+    active: root.editing
+    visible: active
+    sourceComponent: LayoutEditor {
+      strings: root.strings
+      aspect: root.aspect
+      onDone: function(layout) {
+        if (!root.editing) return
+        var next = root.layouts.slice()
+        var index = root.editingIndex
+        if (index < 0) { next.push(layout); index = next.length - 1 }
+        else next[index] = { name: layout.name, zones: layout.zones, starred: next[index].starred }
+        root.layouts = Presets.sanitizeLayouts(next)
+        root.closeEditor(index)
+      }
+      onDeleted: {
+        if (!root.editing) return
+        var next = root.layouts.slice()
+        next.splice(root.editingIndex, 1)
+        // Deleting the starred layout passes the star to the first.
+        root.layouts = Presets.sanitizeLayouts(next)
+        root.closeEditor(Math.min(root.editingIndex, next.length - 1))
+      }
+      onCancelled: if (root.editing) root.closeEditor(root.editingIndex)
     }
-    onDeleted: {
-      if (!root.editing) return
-      var next = root.layouts.slice()
-      next.splice(root.editingIndex, 1)
-      // Deleting the starred layout passes the star to the first.
-      root.layouts = Presets.sanitizeLayouts(next)
-      root.closeEditor(Math.min(root.editingIndex, next.length - 1))
-    }
-    onCancelled: if (root.editing) root.closeEditor(root.editingIndex)
   }
 }

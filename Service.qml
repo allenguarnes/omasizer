@@ -138,12 +138,11 @@ Item {
     onExited: function(exitCode) {
       if (registering) {
         registering = false
-        // A failed or timed-out read leaves the conflict check without a list; the next register tries again.
+        // A failed or timed-out read leaves the conflict check without a list; a queued register retries it.
         if (exitCode === 0) root.loadHook()
-      } else if (root.registerAgain) {
-        // A register that arrived during a plain read (Settings refreshing the list).
-        root.register()
       }
+      // A register that arrived meanwhile runs now, unless a hook load just started; its exit runs it.
+      if (root.registerAgain && !hookLoader.running) root.register()
     }
   }
 

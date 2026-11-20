@@ -132,11 +132,12 @@ Item {
   }
 
   function openSettings() {
+    root.view = "settings"
+    var settingsView = settingsLoader.item
     settingsView.newWidth = root.windowWidth || 1280
     settingsView.newHeight = root.windowHeight || 720
     settingsView.load(root.settings)
-    root.view = "settings"
-    Qt.callLater(function() { settingsView.focusFirst() })
+    Qt.callLater(function() { if (settingsLoader.item) settingsLoader.item.focusFirst() })
   }
 
   function save(next) {
@@ -188,7 +189,7 @@ Item {
       readonly property bool placeAtCursor: root.atCursor && root.view === "menu" && !!monitor
 
       width: Math.min(root.view === "settings" ? Style.space(580) : root.menuWidth, panel.width - Style.gapsOut * 2)
-      height: root.contentMargin * 2 + (root.view === "settings" ? settingsView.implicitHeight : menuColumn.implicitHeight)
+      height: root.contentMargin * 2 + (root.view === "settings" ? (settingsLoader.item ? settingsLoader.item.implicitHeight : 0) : menuColumn.implicitHeight)
       x: placeAtCursor
         ? Math.max(Style.gapsOut, Math.min(root.cursorX - monitor.x, panel.width - width - Style.gapsOut))
         : (panel.width - width) / 2
@@ -407,24 +408,30 @@ Item {
         }
       }
 
-      Settings {
-        id: settingsView
-        visible: root.view === "settings"
+      // Created only while open: a hidden text field still reads the clipboard on every
+      // change made in another app, and a slow transfer would stall the shell.
+      Loader {
+        id: settingsLoader
+        // Inside the component, `strings` would name Settings' own property.
+        readonly property var translations: strings
+        active: root.view === "settings"
         anchors.fill: parent
         anchors.topMargin: card.contentTopInset
         anchors.rightMargin: card.contentRightInset
         anchors.bottomMargin: card.contentBottomInset
         anchors.leftMargin: card.contentLeftInset
-        strings: strings
-        aspect: panel.height / Math.max(1, panel.width)
-        maxHeight: panel.height - Style.gapsOut * 2 - root.contentMargin * 2
-        service: root.service
-        onSaved: function(next) { root.save(next) }
-        onCancelled: {
-          root.view = "menu"
-          Qt.callLater(function() { keyCatcher.forceActiveFocus() })
+        sourceComponent: Settings {
+          strings: settingsLoader.translations
+          aspect: panel.height / Math.max(1, panel.width)
+          maxHeight: panel.height - Style.gapsOut * 2 - root.contentMargin * 2
+          service: root.service
+          onSaved: function(next) { root.save(next) }
+          onCancelled: {
+            root.view = "menu"
+            Qt.callLater(function() { keyCatcher.forceActiveFocus() })
+          }
+          Keys.onEscapePressed: cancelled()
         }
-        Keys.onEscapePressed: cancelled()
       }
     }
   }
