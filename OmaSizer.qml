@@ -187,6 +187,12 @@ Item {
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
 
+  // Run from here, not from Settings: leaving settings destroys it before a later call would run.
+  function backToMenu() {
+    root.view = "menu"
+    Qt.callLater(function() { if (root.view === "menu") keyCatcher.forceActiveFocus() })
+  }
+
   function move(delta) {
     root.spanAnchor = -1
     root.selectedIndex = (root.selectedIndex + delta + root.rowCount) % root.rowCount
@@ -514,10 +520,7 @@ Item {
           maxHeight: panel.height - Style.gapsOut * 2 - root.contentMargin * 2
           service: root.service
           onSaved: function(next) { root.save(next) }
-          onCancelled: {
-            root.view = "menu"
-            Qt.callLater(function() { keyCatcher.forceActiveFocus() })
-          }
+          onCancelled: root.backToMenu()
           Keys.onEscapePressed: cancelled()
         }
       }
