@@ -165,6 +165,28 @@ expect "${quarter}12, y = 650 })" --layout "$stacked" --span 1 1
 AT=12,650 SIZE=941,538 expect "$all_thirds" --grow right "$sspec"
 AT=12,68 SIZE=1896,1120 expect "${quarter}12, y = 650 })" --grow left "$sspec"
 [[ $(jq -c '."0xabc".span' "$tmp/omasizer-layouts.json") == '[1,1]' ]] || { echo "stacked span: $(cat "$tmp/omasizer-layouts.json")" >&2; exit 1; }
+# Two zones side by side above a wide one, beside a tall one: grown across from the wide
+# one, the opposite arrow takes it back there, not to the whole left half.
+uneven='[[0,0,0.25,0.5],[0.25,0,0.25,0.5],[0,0.5,0.5,0.5],[0.5,0,0.5,1]]'
+uspec='{"layouts":['"$uneven"'],"starred":0}'
+expect "${quarter}12, y = 650 })" --layout "$uneven" --span 2 2
+AT=12,650 SIZE=941,538 expect "$all_thirds" --grow right "$uspec"
+[[ $(jq -c '."0xabc" | [.span, .trail]' "$tmp/omasizer-layouts.json") == '[[2,3],[2]]' ]] || { echo "uneven trail: $(cat "$tmp/omasizer-layouts.json")" >&2; exit 1; }
+AT=12,68 SIZE=1896,1120 expect "${quarter}12, y = 650 })" --grow left "$uspec"
+[[ $(jq -c '."0xabc" | [.span, .trail]' "$tmp/omasizer-layouts.json") == '[[2,2],null]' ]] || { echo "uneven span: $(cat "$tmp/omasizer-layouts.json")" >&2; exit 1; }
+# Placed from the menu, a span has no trail, and a trail out of the layout is ignored.
+expect "$all_thirds" --layout "$uneven" --span 2 3
+[[ $(jq -c '."0xabc".trail' "$tmp/omasizer-layouts.json") == null ]] || { echo "menu span kept a trail" >&2; exit 1; }
+echo '{"0xabc":{"zones":'"$uneven"',"span":[2,3],"stableId":"18000012","trail":[9]}}' >"$tmp/omasizer-layouts.json"
+AT=12,68 SIZE=1896,1120 expect "$left" --grow left "$uspec"
+# A move leaves no trail behind.
+[[ $(jq -c '."0xabc" | [.span, .trail]' "$tmp/omasizer-layouts.json") == '[[2,1],[3]]' ]] || { echo "grow trail: $(cat "$tmp/omasizer-layouts.json")" >&2; exit 1; }
+AT=12,68 SIZE=941,1120 expect "$right" --move right "$uspec"
+[[ $(jq -c '."0xabc".trail' "$tmp/omasizer-layouts.json") == null ]] || { echo "move kept a trail" >&2; exit 1; }
+# A single zone moves into a zone that covers part of it, as in 1.3: here, out of the full screen.
+whole='[[0,0,1,1],[0.5,0,0.5,1]]'
+expect "$all_thirds" --layout "$whole" --span 0 0
+AT=12,68 SIZE=1896,1120 expect "$right" --move right '{"layouts":['"$whole"'],"starred":0}'
 
 # Restore: back to where the window was before OmaSizer first moved it, however many moves since.
 rm -f "$tmp/omasizer-restore.json"
@@ -213,9 +235,9 @@ expect $'hl.dsp.window.float({ action = "disable" })' --restore 0xdef
 rm -f "$tmp/omasizer-restore.json"
 
 # A closed window's notes go from both files. The address comes as Hyprland's event gives it,
-# without 0x, or with it; the window is gone, so this needs nothing from Hyprland.
+# without 0x, or with it.
 mkdir -p "$tmp/gone"
-printf '#!/bin/bash\nexit 1\n' >"$tmp/gone/hyprctl"; chmod +x "$tmp/gone/hyprctl"
+printf '#!/bin/bash\necho "[]"\n' >"$tmp/gone/hyprctl"; chmod +x "$tmp/gone/hyprctl"
 echo '{"0xabc":{"box":[1,2,3,4],"floating":true,"fullscreen":0,"stableId":"18000012"},"0xdef":{"box":[1,2,3,4],"floating":true,"fullscreen":0,"stableId":"18000020"}}' >"$tmp/omasizer-restore.json"
 echo '{"0xabc":{"zones":'"$quads"',"span":[0,0],"stableId":"18000012"},"0xdef":'"$quads"'}' >"$tmp/omasizer-layouts.json"
 PATH="$tmp/gone:$PATH" "$root/bin/omasizer" --forget abc
@@ -239,13 +261,21 @@ CLIENTS='[{"address":"0xabc","stableId":"18000099","floating":true,"fullscreen":
   "$root/bin/omasizer" --forget abc
 [[ $(jq -c 'keys' "$tmp/omasizer-restore.json") == '["0xabc"]' ]] || { echo "forget dropped the new window's place" >&2; exit 1; }
 [[ $(jq -c . "$tmp/omasizer-layouts.json") == '{}' ]] || { echo "forget kept the old window's layout: $(cat "$tmp/omasizer-layouts.json")" >&2; exit 1; }
-# A Hyprland that stalls doesn't keep a forget from finishing in time.
+# A Hyprland that stalls doesn't keep a forget from finishing in time. Not knowing whether
+# a new window has the address, it leaves the notes: the next run drops them if it is gone.
 mkdir -p "$tmp/stall"
 printf '#!/bin/bash\nsleep 30\n' >"$tmp/stall/hyprctl"; chmod +x "$tmp/stall/hyprctl"
+noted=$(cat "$tmp/omasizer-restore.json")
 start=$SECONDS
 PATH="$tmp/stall:$PATH" "$root/bin/omasizer" --forget abc
 (( SECONDS - start <= 2 )) || { echo "a stalled hyprctl held a forget for $((SECONDS - start)) s" >&2; exit 1; }
-[[ $(jq -c . "$tmp/omasizer-restore.json") == '{}' ]] || { echo "a stalled hyprctl kept the forget from dropping: $(cat "$tmp/omasizer-restore.json")" >&2; exit 1; }
+[[ $(cat "$tmp/omasizer-restore.json") == "$noted" ]] || { echo "a stalled hyprctl let the forget drop: $(cat "$tmp/omasizer-restore.json")" >&2; exit 1; }
+# Nor does one that fails or answers with something else.
+for reply in 'exit 1' 'echo "{}"' 'echo "[{"'; do
+  printf '#!/bin/bash\n%s\n' "$reply" >"$tmp/stall/hyprctl"
+  PATH="$tmp/stall:$PATH" "$root/bin/omasizer" --forget abc
+  [[ $(cat "$tmp/omasizer-restore.json") == "$noted" ]] || { echo "forget dropped on a hyprctl that does $reply" >&2; exit 1; }
+done
 rm -f "$tmp/omasizer-restore.json" "$tmp/omasizer-layouts.json"
 
 # Bad arguments are refused before anything is dispatched.

@@ -23,7 +23,7 @@
 # --span places the window across zones <first> to <last> of the layout (indices
 # from 0): it fills the smallest rectangle holding both. --grow keeps the zone the
 # span started from and moves its other end to the next zone in that direction,
-# so it grows the span, or shrinks it back.
+# so it grows the span, or shrinks it back through the zones it grew across.
 #
 # Before OmaSizer first moves or resizes a window, it notes where the window was;
 # --restore puts it back there (tiled, maximized or fullscreen again if it was),
@@ -88,7 +88,7 @@ geometry='
   def remembered($id): if type == "array" then { zones: ., span: null }
     elif type == "object" and (.zones | type) == "array" and (.stableId == null or .stableId == $id) then . else null end;'
 
-layout="" span=""
+layout="" span="" trail=""
 if [[ ${1:-} == --layout ]]; then
   layout=${2:-}
   jq -en --argjson l "$layout" "$geometry \$l | valid_layout" >/dev/null 2>&1 || usage
@@ -149,8 +149,8 @@ if [[ -z ${OMASIZER_SWAPPING:-} ]]; then
   flock -w "$([[ $mode == forget ]] && echo 4 || echo 1)" 9 || exit 0
 fi
 
-# Which layout each window was last placed in: window address to { zones, span, stableId },
-# the layout's zones and the first and last zone it spans.
+# Which layout each window was last placed in: window address to { zones, span, stableId, trail },
+# the layout's zones, the first and last zone it spans, and the ends it grew from.
 memory=$run_dir/omasizer-layouts.json
 # Where each window was before OmaSizer first moved it: window address to
 # { box, floating, fullscreen, placed, stableId }, placed being where OmaSizer last put it.
@@ -161,11 +161,13 @@ trap 'rm -f "$memory.$$" "$places.$$"' EXIT
 # Written whole and renamed into place, like every other change to them.
 # The close event can arrive late, after Hyprland gave the address to a new window that
 # OmaSizer already placed: notes with that window's stableId are its own, and stay.
-# Hyprland gets half a second, since the lock may already have taken 4 of the 5; if it
-# fails or doesn't answer, the notes go as before.
+# Hyprland gets half a second, since the lock may already have taken 4 of the 5. If it
+# fails or doesn't answer, the notes stay: the next run drops closed windows anyway, and
+# restore and the arrows ignore a note for another stableId.
 if [[ $mode == forget ]]; then
-  live=$(timeout 0.5 hyprctl clients -j 2>/dev/null | jq -r --arg a "$address" \
-    'first(.[] | select(.address == $a) | .stableId // empty | tostring) // empty' 2>/dev/null) || live=""
+  clients=$(timeout 0.5 hyprctl clients -j 2>/dev/null) || exit 0
+  live=$(jq -er --arg a "$address" 'if type == "array" then first(.[] | select(.address == $a) | .stableId // "" | tostring) // "" else error end' \
+    <<<"$clients" 2>/dev/null) || exit 0
   for file in "$places" "$memory"; do
     jq -e --arg a "$address" --arg live "$live" 'type == "object" and has($a)
       and ($live == "" or (.[$a] | type == "object" and (.stableId | tostring) == $live | not))' "$file" >/dev/null 2>&1 || continue
@@ -233,15 +235,20 @@ if [[ $mode == move || $mode == grow ]]; then
     | (if $memo != null and any($spec.layouts[]; . == $memo.zones) then $memo.zones else $spec.layouts[$spec.starred] end) as $zones
     | (if $memo != null and $memo.zones == $zones and ($memo.span | type) == "array"
          and ($memo.span | length == 2 and all(.[]; type == "number" and . >= 0 and . < ($zones | length)))
-         and fits(frame(span_zone($zones; $memo.span)); $window) then $memo.span
-       else first(range($zones | length) as $i | select(fits(frame($zones[$i]); $window)) | [$i, $i]) // null end) as $span
+         and fits(frame(span_zone($zones; $memo.span)); $window) then $memo.span else null end) as $kept
+    | ($kept // first(range($zones | length) as $i | select(fits(frame($zones[$i]); $window)) | [$i, $i]) // null) as $span
+    # The ends a grow left behind, last one last; only a remembered span still has them.
+    | (if $kept != null and ($memo.trail | type) == "array"
+         and all($memo.trail[]; type == "number" and . == floor and . >= 0 and . < ($zones | length)) then $memo.trail else [] end) as $trail
     | (if $span == null then [($window[0] - $area[0]) / $area[2], ($window[1] - $area[1]) / $area[3], $window[2] / $area[2], $window[3] / $area[3]]
        elif $mode == "grow" then $zones[$span[1]]
        else span_zone($zones; $span) end) as $from
     | (if $dir == "left" or $dir == "right" then 0 else 1 end) as $axis
     | (if $dir == "right" or $dir == "down" then 1 else -1 end) as $sign
+    # A span skips the zones it covers; a single zone skips only itself, so a full-screen
+    # zone can still move into a half of it.
     | [range($zones | length) as $i | $zones[$i] as $z
-       | select($span == null or ($z | inside($from) | not))
+       | select(if $span == null then true elif $span[0] == $span[1] then $i != $span[0] else ($z | inside($from) | not) end)
        | (($z | center($axis)) - ($from | center($axis))) * $sign as $ahead
        | select($ahead > 0.001 and overlap($z; $from; 1 - $axis) > 0.001)
        # Growing, a tie goes to a zone inside the span, and among those to the one leaving
@@ -249,12 +256,16 @@ if [[ $mode == move || $mode == grow ]]; then
        # stacked beside a tall one can both lie inside the span and tie on every other count.
        | (if $mode == "grow" and $span != null and ($z | inside(span_zone($zones; $span)))
           then span_zone($zones; [$span[0], $i]) | .[2] * .[3] else 2 end) as $shrink
-       | { index: $i, rank: [$ahead, $shrink, (($z | center(1 - $axis)) - ($from | center(1 - $axis)) | fabs)] }]
-    | (min_by(.rank) // empty) as $next
-    | (if $mode == "grow" and $span != null then [$span[0], $next.index] else [$next.index, $next.index] end) as $to
-    | "\(span_zone($zones; $to) | map(tostring) | join(" "))\n\($zones | tojson)\n\($to | tojson)"')
+       | { index: $i, rank: [$ahead, $shrink, (($z | center(1 - $axis)) - ($from | center(1 - $axis)) | fabs)] }] as $candidates
+    # Growing back toward the end it came from retraces its steps: in uneven layouts the
+    # nearest zone that way can be another one. Growing on, the end it leaves is kept.
+    | (if $mode == "grow" and $span != null then
+         if ($trail | length) > 0 and any($candidates[]; .index == $trail[-1]) then { to: [$span[0], $trail[-1]], trail: $trail[:-1] }
+         else ($candidates | min_by(.rank) // empty) | { to: [$span[0], .index], trail: ($trail + [$span[1]]) } end
+       else ($candidates | min_by(.rank) // empty) | { to: [.index, .index], trail: [] } end) as $step
+    | "\(span_zone($zones; $step.to) | map(tostring) | join(" "))\n\($zones | tojson)\n\($step.to | tojson)\n\($step.trail | tojson)"')
   [[ -n $target ]] || exit 0
-  { read -r zone_x zone_y zone_w zone_h; read -r layout; read -r span; } <<<"$target"
+  { read -r zone_x zone_y zone_w zone_h; read -r layout; read -r span; read -r trail; } <<<"$target"
   mode=zone
 fi
 
@@ -386,6 +397,6 @@ remember "$places" "$(jq -cn --argjson previous "${previous:-null}" --argjson bo
 # Remember the layout and span. A preset size takes the window out of its layout, so it
 # forgets it and the arrows start from the starred one.
 if [[ -n $layout || $mode == size ]]; then
-  remember "$memory" "$(jq -cn --argjson l "${layout:-null}" --argjson s "${span:-null}" --arg id "$stable_id" \
-    'if $l == null then null else { zones: $l, span: $s, stableId: $id } end')"
+  remember "$memory" "$(jq -cn --argjson l "${layout:-null}" --argjson s "${span:-null}" --argjson t "${trail:-[]}" --arg id "$stable_id" \
+    'if $l == null then null else { zones: $l, span: $s, stableId: $id } + (if $t == [] then {} else { trail: $t } end) end')"
 fi
