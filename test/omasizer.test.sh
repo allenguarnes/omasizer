@@ -10,8 +10,8 @@ trap 'rm -rf "$tmp"' EXIT
 cat >"$tmp/hyprctl" <<'STUB'
 #!/bin/bash
 case "$1 $2" in
-"activewindow -j") echo '{"address":"0xabc","floating":true,"fullscreen":'"${FS:-0}"',"monitor":0,"workspace":{"id":1},"at":['"${AT:-300,200}"'],"size":['"${SIZE:-800,600}"'],"tags":["omarchy-floating-workspace","terminal*"]}' ;;
-"clients -j") [[ -n ${CLIENTS:-} ]] && echo "$CLIENTS" || echo '[{"address":"0xdef","floating":false,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[5,5],"size":[800,600],"tags":[]}]' ;;
+"activewindow -j") echo '{"address":"0xabc","stableId":"'"${SID:-18000012}"'","floating":true,"fullscreen":'"${FS:-0}"',"monitor":0,"workspace":{"id":1},"at":['"${AT:-300,200}"'],"size":['"${SIZE:-800,600}"'],"tags":["omarchy-floating-workspace","terminal*"]}' ;;
+"clients -j") [[ -n ${CLIENTS:-} ]] && echo "$CLIENTS" || echo '[{"address":"0xdef","stableId":"18000020","floating":false,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[5,5],"size":[800,600],"tags":[]}]' ;;
 "monitors -j") echo '[{"id":0,"x":0,"y":0,"width":3200,"height":2000,"scale":1.6666666,"transform":0,"reserved":[0,26,0,0]}]' ;;
 "getoption general:gaps_out") echo '{"css":"10 10 10 10"}' ;;
 "getoption general:gaps_in") echo '{"css":"5 5 5 5"}' ;;
@@ -88,7 +88,7 @@ AT=12,68 SIZE=941,538 expect "$right" --move right '{"layouts":['"$halves"'],"st
 [[ $(jq -c 'keys' "$tmp/omasizer-layouts.json") == '["0xabc"]' ]] || { echo "memory: $(cat "$tmp/omasizer-layouts.json")" >&2; exit 1; }
 
 # A window on the same layout in the zone moved to takes the zone left behind; it moves first.
-export CLIENTS='[{"address":"0xabc","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[0,0],"size":[1,1],"tags":[]},{"address":"0xdef","floating":true,"fullscreen":0,"mapped":true,"hidden":false,"monitor":0,"workspace":{"id":1},"at":[967,68],"size":[941,538],"tags":["omarchy-floating-workspace"]}]'
+export CLIENTS='[{"address":"0xabc","stableId":"18000012","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[0,0],"size":[1,1],"tags":[]},{"address":"0xdef","stableId":"18000020","floating":true,"fullscreen":0,"mapped":true,"hidden":false,"monitor":0,"workspace":{"id":1},"at":[967,68],"size":[941,538],"tags":["omarchy-floating-workspace"]}]'
 quarter=$'hl.dsp.window.resize({ x = 941, y = 538 })\nhl.dsp.window.move({ x = '
 run --layout "$quads" --zone 0.5 0 0.5 0.5 0xdef >/dev/null
 run --layout "$quads" --zone 0 0 0.5 0.5 >/dev/null
@@ -111,7 +111,7 @@ rm "$tmp/omarchy/shell.json"
 AT=100,100 SIZE=500,300 expect "${quarter}967, y = 68 })" --layout "$quads" --zone 0.5 0 0.5 0.5
 AT=967,68 SIZE=941,538 expect "${quarter}967, y = 68 })" --layout "$quads" --zone 0.5 0 0.5 0.5
 # Both windows in their zones, as on a real desktop: the other window's move must not swap back.
-export CLIENTS='[{"address":"0xabc","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[12,68],"size":[941,538],"tags":["omarchy-floating-workspace"]},{"address":"0xdef","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[967,68],"size":[941,538],"tags":["omarchy-floating-workspace"]}]'
+export CLIENTS='[{"address":"0xabc","stableId":"18000012","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[12,68],"size":[941,538],"tags":["omarchy-floating-workspace"]},{"address":"0xdef","stableId":"18000020","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[967,68],"size":[941,538],"tags":["omarchy-floating-workspace"]}]'
 run --layout "$quads" --zone 0.5 0 0.5 0.5 0xdef >/dev/null
 run --layout "$quads" --zone 0 0 0.5 0.5 0xabc >/dev/null
 : >"$LOG"
@@ -153,14 +153,14 @@ AT=12,68 SIZE=1000,1120 expect "$middle" --move right "$tspec"
 echo '{"0xabc":'"$thirds"'}' >"$tmp/omasizer-layouts.json"
 AT=12,68 SIZE=624,1120 expect "$middle" --move right '{"layouts":['"$halves,$thirds"'],"starred":0}'
 # A span never swaps; the window in the zone keeps it.
-export CLIENTS='[{"address":"0xabc","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[12,68],"size":[624,1120],"tags":["omarchy-floating-workspace"]},{"address":"0xdef","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[650,68],"size":[619,1120],"tags":["omarchy-floating-workspace"]}]'
+export CLIENTS='[{"address":"0xabc","stableId":"18000012","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[12,68],"size":[624,1120],"tags":["omarchy-floating-workspace"]},{"address":"0xdef","stableId":"18000020","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[650,68],"size":[619,1120],"tags":["omarchy-floating-workspace"]}]'
 run --layout "$thirds" --span 1 1 0xdef >/dev/null
 AT=12,68 SIZE=624,1120 expect "$two_thirds" --grow right "$tspec"
 unset CLIENTS
 
 # Restore: back to where the window was before OmaSizer first moved it, however many moves since.
 rm -f "$tmp/omasizer-restore.json"
-export CLIENTS='[{"address":"0xabc","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[12,68],"size":[941,1120],"tags":["omarchy-floating-workspace"]}]'
+export CLIENTS='[{"address":"0xabc","stableId":"18000012","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[12,68],"size":[941,1120],"tags":["omarchy-floating-workspace"]}]'
 before=$'hl.dsp.window.resize({ x = 800, y = 600 })\nhl.dsp.window.move({ x = 300, y = 200 })'
 expect "$left" --zone 0 0 0.5 1
 AT=12,68 SIZE=941,1120 expect "$right" --zone 0.5 0 0.5 1
@@ -172,20 +172,63 @@ AT=300,200 SIZE=800,600 expect "" --restore
 expect "$left" --zone 0 0 0.5 1
 AT=500,400 SIZE=941,1120 expect "$left" --zone 0 0 0.5 1
 AT=12,68 SIZE=941,1120 expect $'hl.dsp.window.resize({ x = 941, y = 1120 })\nhl.dsp.window.move({ x = 500, y = 400 })' --restore
-# A maximized window is maximized again.
-FS=1 expect $'hl.dsp.window.fullscreen({ mode = "maximized", action = "unset",  })\n'"$left" --zone 0 0 0.5 1
-AT=12,68 SIZE=941,1120 expect "$before"$'\nhl.dsp.window.fullscreen({ mode = "maximized", action = "set",  })' --restore
+# A maximized window is maximized again, at the size it had before: its place is read
+# back once maximizing is unset, not the screen it filled.
+unmaximized='[{"address":"0xabc","stableId":"18000012","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[100,150],"size":[640,480],"tags":["omarchy-floating-workspace"]}]'
+own=$'hl.dsp.window.resize({ x = 640, y = 480 })\nhl.dsp.window.move({ x = 100, y = 150 })'
+CLIENTS=$unmaximized FS=1 AT=0,26 SIZE=1920,1174 expect $'hl.dsp.window.fullscreen({ mode = "maximized", action = "unset",  })\n'"$left" --zone 0 0 0.5 1
+AT=12,68 SIZE=941,1120 expect "$own"$'\nhl.dsp.window.fullscreen({ mode = "maximized", action = "set",  })' --restore
+# Maximized and fullscreen at once (3): both are unset first, and restore makes it fullscreen again.
+CLIENTS=$unmaximized FS=3 AT=0,0 SIZE=1920,1200 expect $'hl.dsp.window.fullscreen({ mode = "fullscreen", action = "unset",  })\nhl.dsp.window.fullscreen({ mode = "maximized", action = "unset",  })\n'"$left" --zone 0 0 0.5 1
+[[ $(jq -c '."0xabc" | [.box, .fullscreen]' "$tmp/omasizer-restore.json") == '[[100,150,640,480],3]' ]] || { echo "fullscreen 3 noted: $(cat "$tmp/omasizer-restore.json")" >&2; exit 1; }
+AT=12,68 SIZE=941,1120 expect "$own"$'\nhl.dsp.window.fullscreen({ mode = "fullscreen", action = "set",  })' --restore
+# A note made for a window that closed is not restored to a new one Hyprland gives its address,
+# and the new one notes its own place, not the old one's.
+expect "$left" --zone 0 0 0.5 1
+SID=18000099 AT=12,68 SIZE=941,1120 expect "" --restore
+SID=18000099 AT=12,68 SIZE=941,1120 expect "$right" --zone 0.5 0 0.5 1
+SID=18000099 AT=967,68 SIZE=941,1120 expect "$left" --restore
+# Nor is a note from before notes kept the stableId.
+expect "$left" --zone 0 0 0.5 1
+jq -c '."0xabc" |= del(.stableId)' "$tmp/omasizer-restore.json" >"$tmp/old.json" && mv "$tmp/old.json" "$tmp/omasizer-restore.json"
+AT=12,68 SIZE=941,1120 expect "" --restore
 unset CLIENTS
+# A layout remembered for another window that had the address is ignored too.
+echo '{"0xabc":{"zones":'"$quads"',"span":[0,0],"stableId":"18000077"}}' >"$tmp/omasizer-layouts.json"
+AT=12,68 SIZE=941,538 expect "$right" --move right "$spec"
+echo '{"0xabc":{"zones":'"$quads"',"span":[0,0],"stableId":"18000012"}}' >"$tmp/omasizer-layouts.json"
+AT=12,68 SIZE=941,538 expect "${quarter}967, y = 68 })" --move right "$spec"
+[[ $(jq -r '."0xabc".stableId' "$tmp/omasizer-layouts.json") == 18000012 ]] || { echo "layout memory: $(cat "$tmp/omasizer-layouts.json")" >&2; exit 1; }
 # A tiled window goes back into the tiling.
 expect $'hl.dsp.window.float({ action = "enable" })\nhl.dsp.window.resize({ x = 941, y = 1150 })\nhl.dsp.window.move({ x = 12, y = 38 })' --zone 0 0 0.5 1 0xdef
 expect $'hl.dsp.window.float({ action = "disable" })' --restore 0xdef
 rm -f "$tmp/omasizer-restore.json"
 
+# A closed window's notes go from both files. The address comes as Hyprland's event gives it,
+# without 0x, or with it; the window is gone, so this needs nothing from Hyprland.
+mkdir -p "$tmp/gone"
+printf '#!/bin/bash\nexit 1\n' >"$tmp/gone/hyprctl"; chmod +x "$tmp/gone/hyprctl"
+echo '{"0xabc":{"box":[1,2,3,4],"floating":true,"fullscreen":0,"stableId":"18000012"},"0xdef":{"box":[1,2,3,4],"floating":true,"fullscreen":0,"stableId":"18000020"}}' >"$tmp/omasizer-restore.json"
+echo '{"0xabc":{"zones":'"$quads"',"span":[0,0],"stableId":"18000012"},"0xdef":'"$quads"'}' >"$tmp/omasizer-layouts.json"
+PATH="$tmp/gone:$PATH" "$root/bin/omasizer" --forget abc
+for file in restore layouts; do
+  [[ $(jq -c 'keys' "$tmp/omasizer-$file.json") == '["0xdef"]' ]] || { echo "forget left $file: $(cat "$tmp/omasizer-$file.json")" >&2; exit 1; }
+done
+PATH="$tmp/gone:$PATH" "$root/bin/omasizer" --forget 0xdef
+for file in restore layouts; do
+  [[ $(jq -c . "$tmp/omasizer-$file.json") == '{}' ]] || { echo "forget left $file: $(cat "$tmp/omasizer-$file.json")" >&2; exit 1; }
+done
+# With nothing noted, it does nothing and makes no files.
+rm -f "$tmp/omasizer-restore.json" "$tmp/omasizer-layouts.json"
+PATH="$tmp/gone:$PATH" "$root/bin/omasizer" --forget abc || { echo "forget failed with no files" >&2; exit 1; }
+[[ ! -e $tmp/omasizer-restore.json && ! -e $tmp/omasizer-layouts.json ]] || { echo "forget made a file" >&2; exit 1; }
+[[ -z $(find "$tmp" -maxdepth 1 -name 'omasizer-*.json.*') ]] || { echo "forget left a temporary file" >&2; exit 1; }
+
 # Bad arguments are refused before anything is dispatched.
 for args in "0 600" "--zone 0 0 1.5 1" "--zone 0 0 x 1" "--zone 0 0 1" "--move left" "--move sideways $spec" \
   '--move left {"layouts":[],"starred":0}' "--move left {\"layouts\":[$halves],\"starred\":1}" "--layout [[0,0,2,1]] --zone 0 0 1 1" "--layout $halves 800 600" \
   "--layout $halves --span 0 2" "--layout $halves --span x 1" "--layout $halves --span 0" "--span 0 1" "--grow left" \
-  "--grow sideways $spec" "--restore 0xabc extra" "--restore window" "800 600 window"; do
+  "--grow sideways $spec" "--restore 0xabc extra" "--restore window" "800 600 window" "--forget" "--forget window" "--forget 0x" "--forget abc extra"; do
   if "$root/bin/omasizer" $args 2>/dev/null; then echo "accepted: $args" >&2; exit 1; fi
 done
 

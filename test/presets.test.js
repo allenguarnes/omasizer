@@ -130,8 +130,6 @@ assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + Z", "SUPER + CTRL + ALT
 assert.strictEqual(ctx.ownConflict("SUPER + ALT + LEFT", "SUPER + CTRL + ALT") !== null, false)
 assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + LEFT", "") !== null, false)
 
-console.log("ok")
-
 // The grow keys are their own setting: Super + Ctrl + Alt + Shift unless saved otherwise, "" for none.
 assert.strictEqual(read({}).growKeys, "SUPER + CTRL + ALT + SHIFT")
 assert.strictEqual(read({ plugins: [{ id: "omasizer", growKeys: "shift+super" }] }).growKeys, "SUPER + SHIFT")
@@ -157,3 +155,5 @@ assert.deepStrictEqual(plain(ctx.spanZone(quads, 2, 2)), [0, 0.5, 0.5, 0.5])
 assert.strictEqual(ctx.spanZone(quads, 0, 4), null)
 assert.strictEqual(ctx.zoneInside(quads[1], ctx.spanZone(quads, 0, 1)), true)
 assert.strictEqual(ctx.zoneInside(quads[2], ctx.spanZone(quads, 0, 1)), false)
+
+console.log("ok")

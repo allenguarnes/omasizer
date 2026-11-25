@@ -196,6 +196,13 @@ Item {
         root.reloaded = true
         root.register()
       }
+      // A closed window's address can come back on a new window, so what OmaSizer
+      // noted for it goes now. The event gives the address in hex, without its 0x.
+      if (event && String(event.name) === "closewindow") {
+        var address = String(event.data || "")
+        if (/^(0x)?[0-9a-f]+$/.test(address))
+          Quickshell.execDetached([root.pluginDir + "bin/omasizer", "--forget", address])
+      }
     }
   }
 }

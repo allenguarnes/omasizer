@@ -122,7 +122,11 @@ Item {
       placesFile.reload()
       try {
         var place = (JSON.parse(placesFile.text() || "{}") || {})[root.restoreAddress]
-        if (place && Array.isArray(place.box) && place.box.length === 4) root.restorePlace = place
+        // The same checks bin/omasizer makes, so Restore never shows for a note it would refuse.
+        if (place && Array.isArray(place.box) && place.box.length === 4
+            && place.box.every(function(n) { return typeof n === "number" })
+            && typeof place.floating === "boolean" && [0, 1, 2, 3].indexOf(place.fullscreen) >= 0
+            && typeof place.stableId === "string") root.restorePlace = place
       } catch (e) {}
     }
 
