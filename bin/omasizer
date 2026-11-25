@@ -159,9 +159,16 @@ trap 'rm -f "$memory.$$" "$places.$$"' EXIT
 
 # The window has closed, so this needs no window: it drops the address from both files.
 # Written whole and renamed into place, like every other change to them.
+# The close event can arrive late, after Hyprland gave the address to a new window that
+# OmaSizer already placed: notes with that window's stableId are its own, and stay.
+# Hyprland gets half a second, since the lock may already have taken 4 of the 5; if it
+# fails or doesn't answer, the notes go as before.
 if [[ $mode == forget ]]; then
+  live=$(timeout 0.5 hyprctl clients -j 2>/dev/null | jq -r --arg a "$address" \
+    'first(.[] | select(.address == $a) | .stableId // empty | tostring) // empty' 2>/dev/null) || live=""
   for file in "$places" "$memory"; do
-    jq -e --arg a "$address" 'type == "object" and has($a)' "$file" >/dev/null 2>&1 || continue
+    jq -e --arg a "$address" --arg live "$live" 'type == "object" and has($a)
+      and ($live == "" or (.[$a] | type == "object" and (.stableId | tostring) == $live | not))' "$file" >/dev/null 2>&1 || continue
     jq -c --arg a "$address" 'del(.[$a])' "$file" >"$file.$$" && mv "$file.$$" "$file"
   done
   exit 0
@@ -237,7 +244,12 @@ if [[ $mode == move || $mode == grow ]]; then
        | select($span == null or ($z | inside($from) | not))
        | (($z | center($axis)) - ($from | center($axis))) * $sign as $ahead
        | select($ahead > 0.001 and overlap($z; $from; 1 - $axis) > 0.001)
-       | { index: $i, rank: [$ahead, (($z | center(1 - $axis)) - ($from | center(1 - $axis)) | fabs)] }]
+       # Growing, a tie goes to a zone inside the span, and among those to the one leaving
+       # the smallest span, so the opposite arrow shrinks it back the way it came. Two zones
+       # stacked beside a tall one can both lie inside the span and tie on every other count.
+       | (if $mode == "grow" and $span != null and ($z | inside(span_zone($zones; $span)))
+          then span_zone($zones; [$span[0], $i]) | .[2] * .[3] else 2 end) as $shrink
+       | { index: $i, rank: [$ahead, $shrink, (($z | center(1 - $axis)) - ($from | center(1 - $axis)) | fabs)] }]
     | (min_by(.rank) // empty) as $next
     | (if $mode == "grow" and $span != null then [$span[0], $next.index] else [$next.index, $next.index] end) as $to
     | "\(span_zone($zones; $to) | map(tostring) | join(" "))\n\($zones | tojson)\n\($to | tojson)"')

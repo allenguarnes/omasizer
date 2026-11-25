@@ -157,6 +157,14 @@ export CLIENTS='[{"address":"0xabc","stableId":"18000012","floating":true,"fulls
 run --layout "$thirds" --span 1 1 0xdef >/dev/null
 AT=12,68 SIZE=624,1120 expect "$two_thirds" --grow right "$tspec"
 unset CLIENTS
+# Two zones stacked beside a tall one: grown across from the bottom one, the opposite arrow
+# shrinks back to it, not out to the whole column, though the top one ties on distance.
+stacked='[[0,0,0.5,0.5],[0,0.5,0.5,0.5],[0.5,0,0.5,1]]'
+sspec='{"layouts":['"$stacked"'],"starred":0}'
+expect "${quarter}12, y = 650 })" --layout "$stacked" --span 1 1
+AT=12,650 SIZE=941,538 expect "$all_thirds" --grow right "$sspec"
+AT=12,68 SIZE=1896,1120 expect "${quarter}12, y = 650 })" --grow left "$sspec"
+[[ $(jq -c '."0xabc".span' "$tmp/omasizer-layouts.json") == '[1,1]' ]] || { echo "stacked span: $(cat "$tmp/omasizer-layouts.json")" >&2; exit 1; }
 
 # Restore: back to where the window was before OmaSizer first moved it, however many moves since.
 rm -f "$tmp/omasizer-restore.json"
@@ -223,6 +231,22 @@ rm -f "$tmp/omasizer-restore.json" "$tmp/omasizer-layouts.json"
 PATH="$tmp/gone:$PATH" "$root/bin/omasizer" --forget abc || { echo "forget failed with no files" >&2; exit 1; }
 [[ ! -e $tmp/omasizer-restore.json && ! -e $tmp/omasizer-layouts.json ]] || { echo "forget made a file" >&2; exit 1; }
 [[ -z $(find "$tmp" -maxdepth 1 -name 'omasizer-*.json.*') ]] || { echo "forget left a temporary file" >&2; exit 1; }
+# A close event late enough that Hyprland gave the address to a new window, already placed:
+# the new window's notes stay, and only the closed one's go.
+echo '{"0xabc":{"box":[1,2,3,4],"floating":true,"fullscreen":0,"stableId":"18000099"}}' >"$tmp/omasizer-restore.json"
+echo '{"0xabc":{"zones":'"$quads"',"span":[0,0],"stableId":"18000012"}}' >"$tmp/omasizer-layouts.json"
+CLIENTS='[{"address":"0xabc","stableId":"18000099","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[12,68],"size":[941,538],"tags":[]}]' \
+  "$root/bin/omasizer" --forget abc
+[[ $(jq -c 'keys' "$tmp/omasizer-restore.json") == '["0xabc"]' ]] || { echo "forget dropped the new window's place" >&2; exit 1; }
+[[ $(jq -c . "$tmp/omasizer-layouts.json") == '{}' ]] || { echo "forget kept the old window's layout: $(cat "$tmp/omasizer-layouts.json")" >&2; exit 1; }
+# A Hyprland that stalls doesn't keep a forget from finishing in time.
+mkdir -p "$tmp/stall"
+printf '#!/bin/bash\nsleep 30\n' >"$tmp/stall/hyprctl"; chmod +x "$tmp/stall/hyprctl"
+start=$SECONDS
+PATH="$tmp/stall:$PATH" "$root/bin/omasizer" --forget abc
+(( SECONDS - start <= 2 )) || { echo "a stalled hyprctl held a forget for $((SECONDS - start)) s" >&2; exit 1; }
+[[ $(jq -c . "$tmp/omasizer-restore.json") == '{}' ]] || { echo "a stalled hyprctl kept the forget from dropping: $(cat "$tmp/omasizer-restore.json")" >&2; exit 1; }
+rm -f "$tmp/omasizer-restore.json" "$tmp/omasizer-layouts.json"
 
 # Bad arguments are refused before anything is dispatched.
 for args in "0 600" "--zone 0 0 1.5 1" "--zone 0 0 x 1" "--zone 0 0 1" "--move left" "--move sideways $spec" \
