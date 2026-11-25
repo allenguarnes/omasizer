@@ -44,7 +44,7 @@ assert.deepStrictEqual(read({ plugins: [{ id: "omasizer", layouts: [] }] }).layo
 assert.deepStrictEqual(read({ plugins: [{ id: "omasizer", center: false, clamp: false, titlebarClick: false, borderClick: false, swap: false, presets: [
   { width: 800, height: 600 }, { width: "x", height: 1 }, { width: -5, height: 5 }, { width: 1.5, height: 2 },
   { width: 20000, height: 5 }, { label: "Big", width: "1920", height: 1080 }
-] }] }), { presets: [{ label: "", width: 800, height: 600 }, { label: "Big", width: 1920, height: 1080 }], center: false, clamp: false, titlebarClick: false, borderClick: false, swap: false, layouts: read({}).layouts, outerGap: null, innerGap: null, shortcut: "SUPER + ALT + Z", moveKeys: "SUPER + CTRL + ALT" })
+] }] }), { presets: [{ label: "", width: 800, height: 600 }, { label: "Big", width: 1920, height: 1080 }], center: false, clamp: false, titlebarClick: false, borderClick: false, swap: false, layouts: read({}).layouts, outerGap: null, innerGap: null, shortcut: "SUPER + ALT + Z", moveKeys: "SUPER + CTRL + ALT", growKeys: "SUPER + CTRL + ALT + SHIFT" })
 assert.deepStrictEqual(read({ plugins: [{ id: "omasizer", presets: [] }] }).presets, [])
 assert.strictEqual(plain(ctx.sanitize(Array(80).fill({ width: 1, height: 1 }))).length, 50)
 
@@ -125,25 +125,29 @@ assert.strictEqual(ctx.moveConflict(arrows, "SUPER + ALT + SHIFT"), "Move worksp
 assert.strictEqual(ctx.moveConflict(arrows, ""), null)
 
 // The menu shortcut can't be one of OmaSizer's own arrows.
-assert.strictEqual(ctx.ownConflict("super+ctrl+alt+left", "SUPER + CTRL + ALT"), true)
-assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + Z", "SUPER + CTRL + ALT"), false)
-assert.strictEqual(ctx.ownConflict("SUPER + ALT + LEFT", "SUPER + CTRL + ALT"), false)
-assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + LEFT", ""), false)
+assert.strictEqual(ctx.ownConflict("super+ctrl+alt+left", "SUPER + CTRL + ALT") !== null, true)
+assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + Z", "SUPER + CTRL + ALT") !== null, false)
+assert.strictEqual(ctx.ownConflict("SUPER + ALT + LEFT", "SUPER + CTRL + ALT") !== null, false)
+assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + LEFT", "") !== null, false)
 
 console.log("ok")
 
-// Growing uses the move keys with Shift; none when they are off or already hold Shift.
-assert.strictEqual(ctx.growKeys("SUPER + CTRL + ALT"), "SUPER + CTRL + ALT + SHIFT")
-assert.strictEqual(ctx.growKeys("ctrl+super"), "SUPER + CTRL + SHIFT")
-assert.strictEqual(ctx.growKeys("SUPER + SHIFT"), "")
-assert.strictEqual(ctx.growKeys(""), "")
-// The menu shortcut can't be one of the grow keys either, and OmaSizer's own grow binds never conflict.
-assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + SHIFT + LEFT", "SUPER + CTRL + ALT"), true)
-assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + SHIFT + LEFT", ""), false)
-assert.strictEqual(ctx.ownConflict("SUPER + ALT + Z", "SUPER + CTRL + ALT"), false)
+// The grow keys are their own setting: Super + Ctrl + Alt + Shift unless saved otherwise, "" for none.
+assert.strictEqual(read({}).growKeys, "SUPER + CTRL + ALT + SHIFT")
+assert.strictEqual(read({ plugins: [{ id: "omasizer", growKeys: "shift+super" }] }).growKeys, "SUPER + SHIFT")
+assert.strictEqual(read({ plugins: [{ id: "omasizer", growKeys: "" }] }).growKeys, "")
+assert.strictEqual(read({ plugins: [{ id: "omasizer", growKeys: "SUPER + Q" }] }).growKeys, "SUPER + CTRL + ALT + SHIFT")
+// Changing the move keys leaves the grow keys alone.
+assert.strictEqual(read({ plugins: [{ id: "omasizer", moveKeys: "SUPER + SHIFT" }] }).growKeys, "SUPER + CTRL + ALT + SHIFT")
+// The menu shortcut can't be one of OmaSizer's arrows, and says which.
+assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + LEFT", "SUPER + CTRL + ALT", "SUPER + SHIFT"), "OmaSizer: move between zones")
+assert.strictEqual(ctx.ownConflict("SUPER + SHIFT + UP", "SUPER + CTRL + ALT", "SUPER + SHIFT"), "OmaSizer: grow across zones")
+assert.strictEqual(ctx.ownConflict("SUPER + SHIFT + UP", "SUPER + CTRL + ALT", ""), null)
+assert.strictEqual(ctx.ownConflict("SUPER + ALT + Z", "SUPER + CTRL + ALT", "SUPER + CTRL + ALT + SHIFT"), null)
+// OmaSizer's own grow binds never count as taken.
 const growBinds = [{ modmask: 77, key: "LEFT", description: "OmaSizer: grow across zones" }, { modmask: 77, key: "UP", description: "Something" }]
-assert.strictEqual(ctx.moveConflict(growBinds, ctx.growKeys("SUPER + CTRL + ALT")), "Something")
-assert.strictEqual(ctx.moveConflict(growBinds.slice(0, 1), ctx.growKeys("SUPER + CTRL + ALT")), null)
+assert.strictEqual(ctx.moveConflict(growBinds, "SUPER + CTRL + ALT + SHIFT"), "Something")
+assert.strictEqual(ctx.moveConflict(growBinds.slice(0, 1), "SUPER + CTRL + ALT + SHIFT"), null)
 
 // A span fills the smallest box holding its first and last zone, in either order.
 const quads = [[0, 0, 0.5, 0.5], [0.5, 0, 0.5, 0.5], [0, 0.5, 0.5, 0.5], [0.5, 0.5, 0.5, 0.5]]

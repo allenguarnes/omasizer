@@ -59,6 +59,8 @@
   "settings.swap": "Tukar dengan tetingkap yang sudah ada dalam zon",
   "restore": "Pulihkan",
   "spanHint": "Seret atau Shift + anak panah untuk merentangi zon",
-  "settings.growHint": "Tambah Shift untuk membesarkan tetingkap merentasi zon, atau mengecilkannya semula.",
-  "settings.growTaken": "Anak panah dengan Shift sudah digunakan oleh “%1”, jadi pembesaran merentasi zon dimatikan."
+  "settings.growHint": "Membesarkan tetingkap aktif ke zon seterusnya dan mengekalkan zon permulaannya; anak panah bertentangan mengecilkannya semula. Backspace mematikannya.",
+  "settings.growKeys": "Besarkan merentasi zon",
+  "settings.growDefault": "Guna Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Ini kekunci untuk bergerak antara zon, jadi pembesaran dimatikan. Pilih kekunci lain."
 }

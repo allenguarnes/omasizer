@@ -59,6 +59,8 @@
   "settings.swap": "Csere a zónában már lévő ablakkal",
   "restore": "Visszaállítás",
   "spanHint": "Húzza vagy Shift + nyilak a zónák átfogásához",
-  "settings.growHint": "Adja hozzá a Shiftet, hogy az ablak több zónára nőjön, vagy visszazsugorodjon.",
-  "settings.growTaken": "A nyilakat Shifttel már használja: „%1”, ezért a zónákra növelés ki van kapcsolva."
+  "settings.growHint": "A fókuszban lévő ablakot a következő zónába növeli, és megtartja a kiinduló zónát; az ellenkező nyíl visszazsugorítja. A Backspace kikapcsolja.",
+  "settings.growKeys": "Növelés zónákra",
+  "settings.growDefault": "Super + Ctrl + Alt + Shift használata",
+  "settings.growSame": "Ezek a zónák közötti mozgatás billentyűi, ezért a növelés ki van kapcsolva. Válasszon másikat."
 }

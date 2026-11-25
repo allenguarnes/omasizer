@@ -59,6 +59,8 @@
   "settings.swap": "Tukar dengan jendela yang sudah ada di zona",
   "restore": "Pulihkan",
   "spanHint": "Seret atau Shift + panah untuk merentang zona",
-  "settings.growHint": "Tambahkan Shift untuk memperbesar jendela melintasi zona, atau mengecilkannya kembali.",
-  "settings.growTaken": "Panah dengan Shift sudah dipakai oleh “%1”, jadi memperbesar melintasi zona dimatikan."
+  "settings.growHint": "Memperbesar jendela aktif ke zona berikutnya dan mempertahankan zona awalnya; panah sebaliknya mengecilkannya kembali. Backspace mematikannya.",
+  "settings.growKeys": "Perbesar melintasi zona",
+  "settings.growDefault": "Gunakan Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Ini adalah tombol untuk berpindah antar zona, jadi memperbesar dimatikan. Pilih tombol lain."
 }

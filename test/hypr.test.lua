@@ -100,9 +100,7 @@ assert(register("SUPER + O", "SUPER + CTRL + ALT") == "bind SUPER + CTRL + ALT +
 assert(register("SUPER + O", "SUPER + CTRL + ALT") == "")
 assert(register("SUPER + O", "SUPER + SHIFT") == "bind SUPER + SHIFT + DOWN, bind SUPER + SHIFT + LEFT, bind SUPER + SHIFT + RIGHT, bind SUPER + SHIFT + UP, unbind SUPER + CTRL + ALT + DOWN, unbind SUPER + CTRL + ALT + LEFT, unbind SUPER + CTRL + ALT + RIGHT, unbind SUPER + CTRL + ALT + UP")
 assert(register("SUPER + O", "") == "unbind SUPER + SHIFT + DOWN, unbind SUPER + SHIFT + LEFT, unbind SUPER + SHIFT + RIGHT, unbind SUPER + SHIFT + UP")
--- The grow arrows: the move keys with Shift, bound and swapped on their own.
-assert(M.grow_keys("SUPER + CTRL + ALT") == "SUPER + CTRL + ALT + SHIFT")
-assert(M.grow_keys("SUPER + SHIFT") == "" and M.grow_keys("") == "" and M.grow_keys(nil) == "")
+-- The grow arrows: bound and swapped on their own.
 local function register_grow(move, grow)
   calls = {}
   M.register("SUPER + O", nil, move, nil, grow)
@@ -117,6 +115,9 @@ register_grow("SUPER + CTRL", "SUPER + CTRL + SHIFT")
 calls = {}
 M.register("SUPER + O", nil, "SUPER + CTRL + SHIFT", nil, "")
 assert(calls[#calls]:find("^bind SUPER %+ CTRL %+ SHIFT %+ ") and not table.concat(calls, ","):find("unbind[^,]*, bind[^,]*, unbind"))
+register_grow("", "")
+-- Grow keys that are the move keys are left unbound; moving keeps them.
+assert(register_grow("SUPER + CTRL", "SUPER + CTRL") == "bind SUPER + CTRL + DOWN, bind SUPER + CTRL + LEFT, bind SUPER + CTRL + RIGHT, bind SUPER + CTRL + UP")
 register_grow("", "")
 
 -- Old keys go before new ones are bound, so a shortcut that was an old arrow key survives the change.

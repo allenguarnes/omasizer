@@ -2,7 +2,8 @@
 // { "id": "omasizer", "presets": [{ label, width, height }], "center": true, "clamp": true,
 //   "titlebarClick": true, "borderClick": true, "swap": true,
 //   "layouts": [{ name, zones: [[x, y, width, height], ...], starred }],
-//   "outerGap": 10, "innerGap": 10, "shortcut": "SUPER + ALT + Z", "moveKeys": "SUPER + CTRL + ALT" }
+//   "outerGap": 10, "innerGap": 10, "shortcut": "SUPER + ALT + Z", "moveKeys": "SUPER + CTRL + ALT",
+//   "growKeys": "SUPER + CTRL + ALT + SHIFT" }
 // The gaps are logical pixels: from the screen edges, and between two zones.
 // Until they are saved, zones use Hyprland's own gaps_out and twice gaps_in.
 // Zones are fractions (0 to 1) of the monitor's usable area.
@@ -51,6 +52,8 @@ var GROW_DESCRIPTION = "OmaSizer: grow across zones"
 // The modifiers that, with an arrow key, move the focused window to the next zone
 // of its layout: "" for none. The service binds all four arrows with them.
 var DEFAULT_MOVE_KEYS = "SUPER + CTRL + ALT"
+// The modifiers that, with an arrow key, grow the focused window across zones: "" for none.
+var DEFAULT_GROW_KEYS = "SUPER + CTRL + ALT + SHIFT"
 var ARROWS = ["LEFT", "RIGHT", "UP", "DOWN"]
 var MODIFIERS = ["SUPER", "CTRL", "ALT", "SHIFT"]
 var MODIFIER_MASKS = { SUPER: 64, CTRL: 4, ALT: 8, SHIFT: 1 }
@@ -75,14 +78,6 @@ function normalizeModifiers(value) {
   return combo ? combo.slice(0, -" + LEFT".length) : null
 }
 
-// The modifiers that, with an arrow key, grow the focused window across zones: the
-// move keys with Shift added, or "" when the move keys are off or already hold Shift.
-function growKeys(moveKeys) {
-  var keys = normalizeModifiers(moveKeys)
-  if (!keys || keys.split(" + ").indexOf("SHIFT") >= 0) return ""
-  return normalizeModifiers(keys + " + SHIFT")
-}
-
 // What already uses one of the four arrows with `modifiers`, or null when all are free.
 function moveConflict(binds, modifiers) {
   for (var i = 0; modifiers && i < ARROWS.length; i++) {
@@ -92,14 +87,15 @@ function moveConflict(binds, modifiers) {
   return null
 }
 
-// Whether `shortcut` is one of the arrows OmaSizer binds with `moveKeys`, or with them and
-// Shift to grow: both would be bound, and changing either later would unbind the other.
-function ownConflict(shortcut, moveKeys) {
+// Which of OmaSizer's own arrow bindings `shortcut` is: MOVE_DESCRIPTION or GROW_DESCRIPTION
+// when it is an arrow with `moveKeys` or `growKeys`, else null. Both would be bound, and
+// changing either later would unbind the other.
+function ownConflict(shortcut, moveKeys, growKeys) {
   var combo = normalizeShortcut(shortcut)
-  var grow = growKeys(moveKeys)
-  return !!combo && !!moveKeys && ARROWS.some(function(a) {
-    return combo === moveKeys + " + " + a || (!!grow && combo === grow + " + " + a)
-  })
+  var arrowOf = function(modifiers) {
+    return !!combo && !!modifiers && ARROWS.some(function(a) { return combo === modifiers + " + " + a })
+  }
+  return arrowOf(moveKeys) ? MOVE_DESCRIPTION : arrowOf(growKeys) ? GROW_DESCRIPTION : null
 }
 
 // What already uses `shortcut` among `hyprctl -j binds`, as a short description, or
@@ -288,6 +284,7 @@ function fromShellConfig(text) {
     layouts: Array.isArray(entry.layouts) ? sanitizeLayouts(entry.layouts) : defaultLayouts(),
     shortcut: entry.shortcut === "" ? "" : normalizeShortcut(entry.shortcut) || DEFAULT_SHORTCUT,
     moveKeys: entry.moveKeys === "" ? "" : normalizeModifiers(entry.moveKeys) || DEFAULT_MOVE_KEYS,
+    growKeys: entry.growKeys === "" ? "" : normalizeModifiers(entry.growKeys) || DEFAULT_GROW_KEYS,
     outerGap: gap(entry.outerGap),
     innerGap: gap(entry.innerGap)
   }

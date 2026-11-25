@@ -59,6 +59,8 @@
   "settings.swap": "Byt med et vindue, der allerede er i zonen",
   "restore": "Gendan",
   "spanHint": "Træk eller Shift + pile for at strække over zoner",
-  "settings.growHint": "Tilføj Shift for at udvide vinduet over zoner eller gøre det mindre igen.",
-  "settings.growTaken": "Pilene med Shift bruges allerede af »%1«, så udvidelse over zoner er slået fra."
+  "settings.growHint": "Udvider det aktive vindue ind i næste zone og beholder zonen, det startede i; den modsatte pil gør det mindre igen. Backspace slår det fra.",
+  "settings.growKeys": "Udvid over zoner",
+  "settings.growDefault": "Brug Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Det er tasterne til at flytte mellem zoner, så udvidelse er slået fra. Vælg andre taster."
 }

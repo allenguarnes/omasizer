@@ -59,6 +59,8 @@
   "settings.swap": "與區域中已有的視窗交換",
   "restore": "還原",
   "spanHint": "拖曳或 Shift + 方向鍵以橫跨多個區域",
-  "settings.growHint": "加上 Shift 可將視窗擴展到多個區域，或再縮回。",
-  "settings.growTaken": "帶 Shift 的方向鍵已被「%1」使用，因此跨區域擴展已關閉。"
+  "settings.growHint": "將焦點視窗擴展到下一個區域，並保留它起始的區域；反方向鍵會再縮回。Backspace 關閉此功能。",
+  "settings.growKeys": "跨區域擴展",
+  "settings.growDefault": "使用 Super + Ctrl + Alt + Shift",
+  "settings.growSame": "這些是在區域間移動的按鍵，因此擴展已關閉。請選擇其他按鍵。"
 }

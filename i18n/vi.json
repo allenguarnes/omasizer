@@ -59,6 +59,8 @@
   "settings.swap": "Hoán đổi với cửa sổ đã có trong vùng",
   "restore": "Khôi phục",
   "spanHint": "Kéo hoặc Shift + mũi tên để trải qua nhiều vùng",
-  "settings.growHint": "Thêm Shift để mở rộng cửa sổ qua các vùng, hoặc thu nhỏ lại.",
-  "settings.growTaken": "Các phím mũi tên với Shift đã được “%1” dùng, nên mở rộng qua các vùng đang tắt."
+  "settings.growHint": "Mở rộng cửa sổ đang chọn sang vùng kế tiếp và giữ vùng bắt đầu; mũi tên ngược lại thu nhỏ lại. Backspace tắt tính năng này.",
+  "settings.growKeys": "Mở rộng qua các vùng",
+  "settings.growDefault": "Dùng Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Đây là các phím di chuyển giữa các vùng, nên mở rộng đang tắt. Hãy chọn phím khác."
 }

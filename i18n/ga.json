@@ -59,6 +59,8 @@
   "settings.swap": "Malartaigh le fuinneog atá sa chrios cheana",
   "restore": "Athchóirigh",
   "spanHint": "Tarraing nó Shift + saighde chun criosanna a chuimsiú",
-  "settings.growHint": "Cuir Shift leis chun an fhuinneog a mhéadú thar chriosanna, nó í a laghdú arís.",
-  "settings.growTaken": "Tá na saighde le Shift in úsáid cheana ag “%1”, mar sin tá méadú thar chriosanna múchta."
+  "settings.growHint": "Méadaíonn sé an fhuinneog fhócasaithe isteach sa chéad chrios eile agus coinníonn sé an crios inar thosaigh sí; laghdaíonn an tsaighead eile arís í. Múchann Backspace é.",
+  "settings.growKeys": "Méadaigh thar chriosanna",
+  "settings.growDefault": "Úsáid Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Seo iad na heochracha chun bogadh idir criosanna, mar sin tá méadú múchta. Roghnaigh eochracha eile."
 }

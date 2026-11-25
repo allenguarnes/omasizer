@@ -59,6 +59,8 @@
   "settings.swap": "Trocar com uma janela que já esteja na zona",
   "restore": "Restaurar",
   "spanHint": "Arraste ou Shift + setas para abranger zonas",
-  "settings.growHint": "Adicione Shift para expandir a janela pelas zonas ou encolhê-la de volta.",
-  "settings.growTaken": "Com Shift, as setas já são usadas por “%1”, então expandir pelas zonas está desativado."
+  "settings.growHint": "Expande a janela ativa até a próxima zona e mantém a zona onde começou; a seta oposta a encolhe de volta. Backspace desativa.",
+  "settings.growKeys": "Expandir pelas zonas",
+  "settings.growDefault": "Usar Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Estas são as teclas para mover entre zonas, então expandir está desativado. Escolha outras teclas."
 }

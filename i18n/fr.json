@@ -59,6 +59,8 @@
   "settings.swap": "Échanger avec une fenêtre déjà dans la zone",
   "restore": "Restaurer",
   "spanHint": "Glissez ou Maj + flèches pour couvrir plusieurs zones",
-  "settings.growHint": "Ajoutez Maj pour agrandir la fenêtre sur plusieurs zones, ou la réduire à nouveau.",
-  "settings.growTaken": "Avec Maj, les flèches sont déjà utilisées par « %1 », donc l’agrandissement sur plusieurs zones est désactivé."
+  "settings.growHint": "Agrandit la fenêtre active jusqu’à la zone suivante en gardant celle où elle a commencé ; la flèche opposée la réduit à nouveau. Retour arrière le désactive.",
+  "settings.growKeys": "Agrandir sur les zones",
+  "settings.growDefault": "Utiliser Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Ce sont les touches pour passer d’une zone à l’autre, donc l’agrandissement est désactivé. Choisissez d’autres touches."
 }

@@ -59,6 +59,8 @@
   "settings.swap": "Swap with a window already in the zone",
   "restore": "Restore",
   "spanHint": "Drag or Shift + arrows to span zones",
-  "settings.growHint": "Add Shift to grow the window across zones, or shrink it back.",
-  "settings.growTaken": "With Shift, the arrows are already used by “%1”, so growing across zones is off."
+  "settings.growHint": "Grows the focused window into the next zone and keeps the zone it started in; the opposite arrow shrinks it back. Backspace turns it off.",
+  "settings.growKeys": "Grow across zones",
+  "settings.growDefault": "Use Super + Ctrl + Alt + Shift",
+  "settings.growSame": "These are the keys that move between zones, so growing is off. Pick other keys."
 }

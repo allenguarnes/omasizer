@@ -59,6 +59,8 @@
   "settings.swap": "Badilishana na dirisha lililo tayari kwenye kanda",
   "restore": "Rejesha",
   "spanHint": "Buruta au Shift + mishale ili kuenea kwenye kanda",
-  "settings.growHint": "Ongeza Shift ili kupanua dirisha kwenye kanda, au kulipunguza tena.",
-  "settings.growTaken": "Mishale pamoja na Shift tayari inatumiwa na “%1”, kwa hivyo kupanua kwenye kanda kumezimwa."
+  "settings.growHint": "Hupanua dirisha linalotumika hadi kanda inayofuata na kubaki na kanda lilipoanzia; mshale wa kinyume hulipunguza tena. Backspace huzima.",
+  "settings.growKeys": "Panua kwenye kanda",
+  "settings.growDefault": "Tumia Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Hizi ni vitufe vya kuhamisha kati ya kanda, kwa hivyo kupanua kumezimwa. Chagua vitufe vingine."
 }

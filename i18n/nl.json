@@ -59,6 +59,8 @@
   "settings.swap": "Wisselen met een venster dat al in de zone staat",
   "restore": "Herstellen",
   "spanHint": "Sleep of Shift + pijlen om zones te overspannen",
-  "settings.growHint": "Voeg Shift toe om het venster over zones te laten groeien, of weer te laten krimpen.",
-  "settings.growTaken": "De pijlen met Shift worden al gebruikt door “%1”, dus groeien over zones staat uit."
+  "settings.growHint": "Laat het actieve venster groeien tot de volgende zone en houdt de zone waar het begon; de tegenovergestelde pijl laat het weer krimpen. Backspace zet het uit.",
+  "settings.growKeys": "Over zones groeien",
+  "settings.growDefault": "Super + Ctrl + Alt + Shift gebruiken",
+  "settings.growSame": "Dit zijn de toetsen om tussen zones te verplaatsen, dus groeien staat uit. Kies andere toetsen."
 }

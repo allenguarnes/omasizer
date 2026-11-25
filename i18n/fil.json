@@ -59,6 +59,8 @@
   "settings.swap": "Makipagpalit sa window na nasa zone na",
   "restore": "Ibalik",
   "spanHint": "I-drag o Shift + arrow para sumaklaw sa mga zone",
-  "settings.growHint": "Idagdag ang Shift para palakihin ang window sa mga zone, o paliitin itong muli.",
-  "settings.growTaken": "Ginagamit na ng “%1” ang mga arrow na may Shift, kaya naka-off ang pagpapalaki sa mga zone."
+  "settings.growHint": "Pinalalaki ang naka-focus na window sa susunod na zone at pinananatili ang zone kung saan ito nagsimula; pinaliliit ito muli ng kabilang arrow. Pinapatay ito ng Backspace.",
+  "settings.growKeys": "Palakihin sa mga zone",
+  "settings.growDefault": "Gamitin ang Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Ito ang mga key para lumipat sa pagitan ng mga zone, kaya naka-off ang pagpapalaki. Pumili ng ibang key."
 }

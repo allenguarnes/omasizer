@@ -59,6 +59,8 @@
   "settings.swap": "Skipta við glugga sem er þegar á svæðinu",
   "restore": "Endurheimta",
   "spanHint": "Dragðu eða Shift + örvar til að ná yfir svæði",
-  "settings.growHint": "Bættu við Shift til að stækka gluggann yfir svæði, eða minnka hann aftur.",
-  "settings.growTaken": "Örvarnar með Shift eru þegar í notkun hjá „%1“, svo stækkun yfir svæði er óvirk."
+  "settings.growHint": "Stækkar virka gluggann inn í næsta svæði og heldur svæðinu sem hann byrjaði í; gagnstæða örin minnkar hann aftur. Backspace slekkur á því.",
+  "settings.growKeys": "Stækka yfir svæði",
+  "settings.growDefault": "Nota Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Þetta eru lyklarnir til að færa milli svæða, svo stækkun er óvirk. Veldu aðra lykla."
 }

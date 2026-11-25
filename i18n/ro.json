@@ -59,6 +59,8 @@
   "settings.swap": "Schimbă cu o fereastră aflată deja în zonă",
   "restore": "Restabilește",
   "spanHint": "Trageți sau Shift + săgeți pentru a acoperi mai multe zone",
-  "settings.growHint": "Adăugați Shift pentru a extinde fereastra peste zone sau a o micșora la loc.",
-  "settings.growTaken": "Săgețile cu Shift sunt deja folosite de „%1”, așa că extinderea peste zone este oprită."
+  "settings.growHint": "Extinde fereastra activă în zona următoare și păstrează zona de început; săgeata opusă o micșorează la loc. Backspace o dezactivează.",
+  "settings.growKeys": "Extinde peste zone",
+  "settings.growDefault": "Folosește Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Acestea sunt tastele de mutare între zone, așa că extinderea este oprită. Alegeți alte taste."
 }

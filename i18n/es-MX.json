@@ -59,6 +59,8 @@
   "settings.swap": "Intercambiar con una ventana que ya esté en la zona",
   "restore": "Restaurar",
   "spanHint": "Arrastra o Mayús + flechas para abarcar zonas",
-  "settings.growHint": "Agrega Mayús para extender la ventana por las zonas o volver a encogerla.",
-  "settings.growTaken": "Con Mayús, las flechas ya las usa “%1”, así que extender por las zonas está desactivado."
+  "settings.growHint": "Extiende la ventana activa a la siguiente zona y conserva la zona donde empezó; la flecha contraria la vuelve a encoger. Retroceso lo desactiva.",
+  "settings.growKeys": "Extender por zonas",
+  "settings.growDefault": "Usar Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Estas son las teclas para moverse entre zonas, así que extender está desactivado. Elige otras teclas."
 }

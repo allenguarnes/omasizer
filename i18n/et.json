@@ -59,6 +59,8 @@
   "settings.swap": "Vaheta tsoonis juba oleva aknaga",
   "restore": "Taasta",
   "spanHint": "Lohista või Shift + nooled, et katta mitu tsooni",
-  "settings.growHint": "Lisa Shift, et laiendada akent üle tsoonide või seda taas kahandada.",
-  "settings.growTaken": "Nooled koos Shiftiga on juba kasutusel: „%1“, seega tsoonide üle laiendamine on väljas."
+  "settings.growHint": "Laiendab aktiivse akna järgmisse tsooni ja hoiab alles tsooni, kust see alustas; vastasnool kahandab selle tagasi. Backspace lülitab selle välja.",
+  "settings.growKeys": "Laienda üle tsoonide",
+  "settings.growDefault": "Kasuta Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Need on tsoonide vahel liikumise klahvid, seega laiendamine on väljas. Vali teised klahvid."
 }

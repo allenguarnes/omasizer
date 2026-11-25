@@ -2,8 +2,8 @@
 -- the menu for the focused window, a right-click on a floating window's
 -- titlebar (its buttons included) or its resize border opens it at the cursor
 -- for that window, and modifiers with an arrow key (Super + Ctrl + Alt by
--- default) move the focused window to the next zone of its layout; with Shift
--- added, they grow it across the zones.
+-- default) move the focused window to the next zone of its layout, and other
+-- modifiers with an arrow (Super + Ctrl + Alt + Shift by default) grow it across zones.
 --
 -- OmaSizer's shell service loads this file with `hyprctl eval` when the shell
 -- starts and after every config reload, first setting `omasizer_shortcut` to
@@ -21,17 +21,9 @@ M.DEFAULT_SHORTCUT = "SUPER + ALT + Z"
 M.DESCRIPTION = "OmaSizer: open the menu"
 M.DEFAULT_MOVE = "SUPER + CTRL + ALT"
 M.MOVE_DESCRIPTION = "OmaSizer: move between zones"
+M.DEFAULT_GROW = "SUPER + CTRL + ALT + SHIFT"
 M.GROW_DESCRIPTION = "OmaSizer: grow across zones"
 M.ARROWS = { LEFT = "left", RIGHT = "right", UP = "up", DOWN = "down" }
-
--- The grow modifiers for `move`: it with Shift added, or "" when it is off or holds Shift.
--- Presets.js orders modifiers SUPER, CTRL, ALT, SHIFT, so Shift always goes last.
-function M.grow_keys(move)
-  if not move or move == "" or (" + " .. move .. " + "):find(" + SHIFT + ", 1, true) then
-    return ""
-  end
-  return move .. " + SHIFT"
-end
 
 local WORKSPACE_TAG = "omarchy-floating-workspace" -- windows Omarchy's floating mode gives titlebars
 
@@ -242,6 +234,10 @@ function M.register(shortcut, clicks, move, owner, grow)
   -- Only keys this file bound are ever unbound; the service never passes one that is in use.
   move = move or ""
   grow = grow or ""
+  -- The same modifiers can't do both: moving keeps them.
+  if grow == move then
+    grow = ""
+  end
   local new_shortcut, new_move, new_grow = state.shortcut ~= shortcut, state.move ~= move, state.grow ~= grow
   if new_shortcut and state.shortcut and state.shortcut ~= "" then
     hl.unbind(state.shortcut)
@@ -311,7 +307,7 @@ elseif hl and hl.bind then
   end
   local grow = _G.omasizer_grow
   if grow == nil then
-    grow = M.grow_keys(move)
+    grow = M.DEFAULT_GROW
   end
   M.register(shortcut, _G.omasizer_clicks, move, _G.omasizer_owner, grow)
 end

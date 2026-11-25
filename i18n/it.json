@@ -59,6 +59,8 @@
   "settings.swap": "Scambia con una finestra già nella zona",
   "restore": "Ripristina",
   "spanHint": "Trascina o Maiusc + frecce per estendere su più zone",
-  "settings.growHint": "Aggiungi Maiusc per estendere la finestra su più zone, o restringerla di nuovo.",
-  "settings.growTaken": "Con Maiusc, le frecce sono già usate da «%1», quindi l'estensione su più zone è disattivata."
+  "settings.growHint": "Estende la finestra attiva alla zona successiva mantenendo quella di partenza; la freccia opposta la restringe di nuovo. Backspace lo disattiva.",
+  "settings.growKeys": "Estendi sulle zone",
+  "settings.growDefault": "Usa Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Questi sono i tasti per spostarsi tra le zone, quindi l'estensione è disattivata. Scegli altri tasti."
 }

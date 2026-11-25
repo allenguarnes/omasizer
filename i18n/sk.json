@@ -59,6 +59,8 @@
   "settings.swap": "Vymeniť s oknom, ktoré už je v zóne",
   "restore": "Obnoviť",
   "spanHint": "Ťahaním alebo Shift + šípkami roztiahnete cez zóny",
-  "settings.growHint": "Pridajte Shift a okno sa roztiahne cez zóny, alebo sa znova zmenší.",
-  "settings.growTaken": "Šípky so Shiftom už používa „%1“, takže rozťahovanie cez zóny je vypnuté."
+  "settings.growHint": "Roztiahne aktívne okno do ďalšej zóny a ponechá zónu, kde začalo; opačná šípka ho znova zmenší. Backspace to vypne.",
+  "settings.growKeys": "Roztiahnuť cez zóny",
+  "settings.growDefault": "Použiť Super + Ctrl + Alt + Shift",
+  "settings.growSame": "To sú klávesy na presun medzi zónami, takže rozťahovanie je vypnuté. Zvoľte iné klávesy."
 }

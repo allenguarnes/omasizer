@@ -59,6 +59,8 @@
   "settings.swap": "Zamijeni s prozorom koji je već u zoni",
   "restore": "Vrati",
   "spanHint": "Povucite ili Shift + strelice za obuhvaćanje zona",
-  "settings.growHint": "Dodajte Shift za širenje prozora preko zona ili njegovo ponovno smanjivanje.",
-  "settings.growTaken": "Strelice sa Shiftom već koristi “%1”, pa je širenje preko zona isključeno."
+  "settings.growHint": "Proširuje aktivni prozor u sljedeću zonu i zadržava zonu u kojoj je počeo; suprotna strelica ga ponovno smanjuje. Backspace to isključuje.",
+  "settings.growKeys": "Proširi preko zona",
+  "settings.growDefault": "Koristi Super + Ctrl + Alt + Shift",
+  "settings.growSame": "To su tipke za pomicanje između zona, pa je širenje isključeno. Odaberite druge tipke."
 }

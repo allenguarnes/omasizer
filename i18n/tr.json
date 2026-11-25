@@ -59,6 +59,8 @@
   "settings.swap": "Bölgede zaten olan bir pencereyle yer değiştir",
   "restore": "Geri yükle",
   "spanHint": "Bölgelere yaymak için sürükleyin veya Shift + oklar",
-  "settings.growHint": "Pencereyi bölgeler boyunca büyütmek ya da geri küçültmek için Shift ekleyin.",
-  "settings.growTaken": "Shift ile oklar zaten “%1” tarafından kullanılıyor, bu yüzden bölgeler boyunca büyütme kapalı."
+  "settings.growHint": "Etkin pencereyi sonraki bölgeye kadar büyütür ve başladığı bölgeyi korur; ters ok onu yeniden küçültür. Backspace kapatır.",
+  "settings.growKeys": "Bölgeler boyunca büyüt",
+  "settings.growDefault": "Super + Ctrl + Alt + Shift kullan",
+  "settings.growSame": "Bunlar bölgeler arasında taşıma tuşları, bu yüzden büyütme kapalı. Başka tuşlar seçin."
 }

@@ -59,6 +59,8 @@
   "settings.swap": "Zamień z oknem, które już jest w strefie",
   "restore": "Przywróć",
   "spanHint": "Przeciągnij lub Shift + strzałki, by objąć kilka stref",
-  "settings.growHint": "Dodaj Shift, aby rozciągnąć okno na kilka stref lub je z powrotem zmniejszyć.",
-  "settings.growTaken": "Strzałki z Shift są już używane przez „%1”, więc rozciąganie na strefy jest wyłączone."
+  "settings.growHint": "Rozciąga aktywne okno do następnej strefy i zachowuje strefę początkową; przeciwna strzałka znów je zmniejsza. Backspace to wyłącza.",
+  "settings.growKeys": "Rozciągnij na strefy",
+  "settings.growDefault": "Użyj Super + Ctrl + Alt + Shift",
+  "settings.growSame": "To klawisze przenoszenia między strefami, więc rozciąganie jest wyłączone. Wybierz inne klawisze."
 }

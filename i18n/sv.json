@@ -59,6 +59,8 @@
   "settings.swap": "Byt plats med ett fönster som redan finns i zonen",
   "restore": "Återställ",
   "spanHint": "Dra eller Skift + pilar för att spänna över zoner",
-  "settings.growHint": "Lägg till Skift för att utöka fönstret över zoner, eller krympa det igen.",
-  "settings.growTaken": "Pilarna med Skift används redan av ”%1”, så utökning över zoner är avstängd."
+  "settings.growHint": "Utökar det aktiva fönstret in i nästa zon och behåller zonen det började i; motsatt pil krymper det igen. Backsteg stänger av det.",
+  "settings.growKeys": "Utöka över zoner",
+  "settings.growDefault": "Använd Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Det här är tangenterna för att flytta mellan zoner, så utökning är avstängd. Välj andra tangenter."
 }

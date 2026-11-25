@@ -28,13 +28,15 @@ Column {
   // OmaSizer's service: it registers the shortcut and knows what else is bound.
   property var service: null
   readonly property string shortcutHolder: !root.service || !root.shortcut ? ""
-    : root.service.conflictFor(root.shortcut) || (Presets.ownConflict(root.shortcut, root.moveKeys) ? Presets.MOVE_DESCRIPTION : "")
+    : root.service.conflictFor(root.shortcut) || Presets.ownConflict(root.shortcut, root.moveKeys, root.growKeys) || ""
   // The modifiers that move a window between zones with the arrows, and what already uses them.
   property string moveKeys: ""
   readonly property string moveHolder: root.service && root.moveKeys ? root.service.moveConflictFor(root.moveKeys) || "" : ""
-  // The same keys with Shift grow a window across zones, unless they hold Shift already.
-  readonly property bool growShown: root.moveKeys !== "" && !root.moveHolder && Presets.growKeys(root.moveKeys) !== ""
-  readonly property string growHolder: root.service && root.growShown ? root.service.growConflictFor(root.moveKeys) || "" : ""
+  // The modifiers that grow a window across zones with the arrows, and what already uses them.
+  property string growKeys: ""
+  readonly property bool growSame: root.growKeys !== "" && root.growKeys === root.moveKeys
+  readonly property string growHolder: root.service && root.growKeys && !root.growSame
+    ? root.service.growConflictFor(root.growKeys, root.moveKeys) || "" : ""
   property var layouts: []
   // The tallest the form may be before it scrolls.
   property real maxHeight: 100000
@@ -71,7 +73,7 @@ Column {
 
   function trySave() {
     if (root.valid) root.saved({ presets: Presets.sanitize(root.draft), center: root.center, clamp: root.clamp,
-      titlebarClick: root.titlebarClick, borderClick: root.borderClick, swap: root.swap, shortcut: root.shortcut, moveKeys: root.moveKeys, layouts: root.layouts,
+      titlebarClick: root.titlebarClick, borderClick: root.borderClick, swap: root.swap, shortcut: root.shortcut, moveKeys: root.moveKeys, growKeys: root.growKeys, layouts: root.layouts,
       outerGap: Number(root.outerGap), innerGap: Number(root.innerGap) })
   }
 
@@ -92,6 +94,7 @@ Column {
     root.swap = settings.swap
     root.shortcut = settings.shortcut
     root.moveKeys = settings.moveKeys
+    root.growKeys = settings.growKeys
     if (root.service) root.service.refreshBinds()
     root.layouts = settings.layouts
     root.editingIndex = -2
@@ -642,14 +645,51 @@ Column {
         : root.strings.t("settings.moveHint")
     }
 
+    Item {
+      width: root.width
+      height: growField.height
+
+      Label {
+        anchors.left: parent.left
+        anchors.right: growField.left
+        anchors.verticalCenter: parent.verticalCenter
+        text: root.strings.t("settings.growKeys")
+        elide: Text.ElideRight
+      }
+
+      ShortcutField {
+        id: growField
+        anchors.right: defaultGrow.left
+        anchors.rightMargin: Style.spacing.sm
+        arrows: true
+        shortcut: root.growKeys
+        offText: root.strings.t("settings.shortcutOff")
+        listeningText: root.strings.t("settings.moveListening")
+        onEdited: function(next) { root.growKeys = next }
+      }
+
+      Button {
+        id: defaultGrow
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        focusable: true
+        bordered: true
+        iconText: Icons.restore
+        tooltipText: root.strings.t("settings.growDefault")
+        enabled: root.growKeys !== Presets.DEFAULT_GROW_KEYS
+        opacity: enabled ? 1 : 0.4
+        onClicked: root.growKeys = Presets.DEFAULT_GROW_KEYS
+      }
+    }
+
     Label {
       width: parent.width
-      visible: root.growShown
       wrapMode: Text.WordWrap
       font.pixelSize: Style.font.bodySmall
-      color: root.growHolder ? Commons.Color.urgent : Commons.Color.menu.text
-      opacity: root.growHolder ? 1 : 0.6
-      text: root.growHolder ? root.strings.t("settings.growTaken").arg(root.growHolder)
+      color: root.growSame || root.growHolder ? Commons.Color.urgent : Commons.Color.menu.text
+      opacity: root.growSame || root.growHolder ? 1 : 0.6
+      text: root.growSame ? root.strings.t("settings.growSame")
+        : root.growHolder ? root.strings.t("settings.moveTaken").arg(root.growHolder)
         : root.strings.t("settings.growHint")
     }
 

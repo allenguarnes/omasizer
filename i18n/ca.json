@@ -59,6 +59,8 @@
   "settings.swap": "Intercanvia amb una finestra que ja és a la zona",
   "restore": "Restaura",
   "spanHint": "Arrossega o Maj + fletxes per abastar zones",
-  "settings.growHint": "Afegeix Maj per estendre la finestra per les zones, o per encongir-la de nou.",
-  "settings.growTaken": "Amb Maj, les fletxes ja les fa servir «%1», així que estendre per les zones està desactivat."
+  "settings.growHint": "Estén la finestra activa a la zona següent i manté la zona on va començar; la fletxa contrària l'encongeix de nou. Retrocés ho desactiva.",
+  "settings.growKeys": "Estendre per les zones",
+  "settings.growDefault": "Utilitza Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Aquestes són les tecles per moure entre zones, així que estendre està desactivat. Tria'n d'altres."
 }

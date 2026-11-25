@@ -26,7 +26,7 @@ Item {
   property string blockedMove: ""
   property string blockedMoveBy: ""
   property string notifiedMove: ""
-  // The same for the grow keys: the arrow keys' modifiers with Shift.
+  // The same for the modifiers that grow a window across zones with the arrows.
   property string blockedGrow: ""
   property string blockedGrowBy: ""
   property string notifiedGrow: ""
@@ -48,9 +48,11 @@ Item {
     return Presets.moveConflict(root.binds, modifiers)
   }
 
-  // What already uses an arrow with `moveKeys` and Shift, the keys that grow a window, or null.
-  function growConflictFor(moveKeys) {
-    return Presets.moveConflict(root.binds, Presets.growKeys(moveKeys))
+  // What already uses an arrow with the grow modifiers, or null. The move keys count:
+  // with the same modifiers, moving keeps them.
+  function growConflictFor(growKeys, moveKeys) {
+    if (growKeys && growKeys === moveKeys) return Presets.MOVE_DESCRIPTION
+    return Presets.moveConflict(root.binds, growKeys)
   }
 
   function refreshBinds() {
@@ -73,7 +75,7 @@ Item {
   function loadHook() {
     var wanted = root.settings.shortcut
     var holder = wanted ? root.conflictFor(wanted)
-      || (Presets.ownConflict(wanted, root.settings.moveKeys) ? Presets.MOVE_DESCRIPTION : null) : null
+      || Presets.ownConflict(wanted, root.settings.moveKeys, root.settings.growKeys) : null
     root.blockedShortcut = holder ? wanted : ""
     root.blockedBy = holder || ""
 
@@ -96,9 +98,8 @@ Item {
         wantedMove + " + arrows are already used by “" + moveHolder + "”. Choose other keys in OmaSizer's settings."])
     }
 
-    // Growing needs the arrows: with those blocked, it stays off too, and only they are reported.
-    var wantedGrow = moveHolder ? "" : Presets.growKeys(wantedMove)
-    var growHolder = wantedGrow ? Presets.moveConflict(root.binds, wantedGrow) : null
+    var wantedGrow = root.settings.growKeys
+    var growHolder = wantedGrow ? root.growConflictFor(wantedGrow, wantedMove) : null
     root.blockedGrow = growHolder ? wantedGrow : ""
     root.blockedGrowBy = growHolder || ""
 
@@ -106,7 +107,7 @@ Item {
       root.notifiedGrow = wantedGrow
       Quickshell.execDetached(["omarchy-notification-send", "-g", "\u{F030C}",
         "OmaSizer grow keys not set",
-        wantedGrow + " + arrows are already used by “" + growHolder + "”. Moving between zones still works."])
+        wantedGrow + " + arrows are already used by “" + growHolder + "”. Choose other keys in OmaSizer's settings."])
     }
 
     // These values go into Lua source, so each must be exactly the safe form checked here.
@@ -135,6 +136,7 @@ Item {
     onLoaded: {
       var next = Presets.fromShellConfig(text())
       var changed = !root.settingsLoaded || next.shortcut !== root.settings.shortcut || next.moveKeys !== root.settings.moveKeys
+        || next.growKeys !== root.settings.growKeys
         || next.titlebarClick !== root.settings.titlebarClick || next.borderClick !== root.settings.borderClick
       root.settings = next
       root.settingsLoaded = true

@@ -59,6 +59,8 @@
   "settings.swap": "Zamenjaj z oknom, ki je že v območju",
   "restore": "Obnovi",
   "spanHint": "Povlecite ali Shift + puščice za razpon čez cone",
-  "settings.growHint": "Dodajte Shift, da okno razširite čez cone ali ga znova skrčite.",
-  "settings.growTaken": "Puščice s Shiftom že uporablja „%1“, zato je širjenje čez cone izklopljeno."
+  "settings.growHint": "Razširi aktivno okno v naslednjo cono in ohrani cono, kjer se je začelo; nasprotna puščica ga spet skrči. Backspace to izklopi.",
+  "settings.growKeys": "Razširi čez cone",
+  "settings.growDefault": "Uporabi Super + Ctrl + Alt + Shift",
+  "settings.growSame": "To so tipke za premikanje med conami, zato je širjenje izklopljeno. Izberite druge tipke."
 }

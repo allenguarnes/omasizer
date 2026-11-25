@@ -59,6 +59,8 @@
   "settings.swap": "Sukeisti su zonoje jau esančiu langu",
   "restore": "Atkurti",
   "spanHint": "Vilkite arba Shift + rodyklės, kad apimtumėte kelias zonas",
-  "settings.growHint": "Pridėkite Shift, kad langas išsiplėstų per zonas arba vėl susitrauktų.",
-  "settings.growTaken": "Rodykles su Shift jau naudoja „%1“, todėl plėtimas per zonas išjungtas."
+  "settings.growHint": "Išplečia aktyvų langą į kitą zoną ir palieka zoną, kurioje jis pradėjo; priešinga rodyklė vėl jį sutraukia. Backspace tai išjungia.",
+  "settings.growKeys": "Plėsti per zonas",
+  "settings.growDefault": "Naudoti Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Tai klavišai judėti tarp zonų, todėl plėtimas išjungtas. Pasirinkite kitus klavišus."
 }

@@ -59,6 +59,8 @@
   "settings.swap": "Mit einem Fenster in der Zone tauschen",
   "restore": "Wiederherstellen",
   "spanHint": "Ziehen oder Umschalt + Pfeile, um Zonen zu überspannen",
-  "settings.growHint": "Mit Umschalt dazu wächst das Fenster über die Zonen oder schrumpft wieder.",
-  "settings.growTaken": "Die Pfeile mit Umschalt werden schon von „%1“ verwendet, daher ist das Wachsen über Zonen aus."
+  "settings.growHint": "Lässt das fokussierte Fenster in die nächste Zone wachsen und behält die Zone, in der es begann; der Gegenpfeil schrumpft es wieder. Backspace schaltet es aus.",
+  "settings.growKeys": "Über Zonen wachsen",
+  "settings.growDefault": "Super + Ctrl + Alt + Shift verwenden",
+  "settings.growSame": "Das sind die Tasten zum Verschieben zwischen Zonen, daher ist das Wachsen aus. Wähle andere Tasten."
 }

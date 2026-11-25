@@ -59,6 +59,8 @@
   "settings.swap": "Bytt med et vindu som allerede er i sonen",
   "restore": "Gjenopprett",
   "spanHint": "Dra eller Shift + piler for å strekke over soner",
-  "settings.growHint": "Legg til Shift for å utvide vinduet over soner, eller krympe det igjen.",
-  "settings.growTaken": "Pilene med Shift brukes allerede av «%1», så utvidelse over soner er slått av."
+  "settings.growHint": "Utvider det aktive vinduet inn i neste sone og beholder sonen det startet i; motsatt pil krymper det igjen. Backspace slår det av.",
+  "settings.growKeys": "Utvid over soner",
+  "settings.growDefault": "Bruk Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Dette er tastene for å flytte mellom soner, så utvidelse er slått av. Velg andre taster."
 }

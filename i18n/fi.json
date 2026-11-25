@@ -59,6 +59,8 @@
   "settings.swap": "Vaihda paikkaa alueella jo olevan ikkunan kanssa",
   "restore": "Palauta",
   "spanHint": "Vedä tai Vaihto + nuolet ulottuaksesi alueiden yli",
-  "settings.growHint": "Lisää Vaihto, niin ikkuna kasvaa alueiden yli tai pienenee takaisin.",
-  "settings.growTaken": "Nuolet Vaihdon kanssa ovat jo käytössä: ”%1”, joten alueiden yli kasvattaminen on pois päältä."
+  "settings.growHint": "Kasvattaa aktiivisen ikkunan seuraavaan alueeseen ja pitää alueen, josta se alkoi; vastakkainen nuoli pienentää sen takaisin. Askelpalautin poistaa sen käytöstä.",
+  "settings.growKeys": "Kasvata alueiden yli",
+  "settings.growDefault": "Käytä Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Nämä ovat alueiden välillä siirtämisen näppäimet, joten kasvattaminen on pois päältä. Valitse muut näppäimet."
 }

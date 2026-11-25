@@ -59,6 +59,8 @@
   "settings.swap": "ゾーン内の既存ウィンドウと入れ替える",
   "restore": "元に戻す",
   "spanHint": "ドラッグまたは Shift + 矢印で複数ゾーンにまたがる",
-  "settings.growHint": "Shift を加えると、ウィンドウを複数のゾーンに広げたり、元に縮めたりできます。",
-  "settings.growTaken": "Shift 付きの矢印キーはすでに「%1」が使用しているため、ゾーンをまたいだ拡大はオフです。"
+  "settings.growHint": "フォーカス中のウィンドウを次のゾーンまで広げ、開始したゾーンは保ちます。逆の矢印で元に縮みます。Backspace でオフになります。",
+  "settings.growKeys": "ゾーンをまたいで拡大",
+  "settings.growDefault": "Super + Ctrl + Alt + Shift を使用",
+  "settings.growSame": "これはゾーン間を移動するキーと同じなので、拡大はオフです。別のキーを選んでください。"
 }

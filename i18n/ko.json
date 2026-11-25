@@ -59,6 +59,8 @@
   "settings.swap": "영역에 이미 있는 창과 교체",
   "restore": "복원",
   "spanHint": "드래그하거나 Shift + 화살표로 여러 영역에 걸치기",
-  "settings.growHint": "Shift를 더하면 창을 여러 영역으로 늘리거나 다시 줄일 수 있습니다.",
-  "settings.growTaken": "Shift와 화살표는 이미 “%1”에서 사용 중이므로 영역 확장은 꺼져 있습니다."
+  "settings.growHint": "포커스된 창을 다음 영역까지 늘리고 시작한 영역은 유지합니다. 반대 화살표는 다시 줄입니다. Backspace로 끕니다.",
+  "settings.growKeys": "영역 걸쳐 늘리기",
+  "settings.growDefault": "Super + Ctrl + Alt + Shift 사용",
+  "settings.growSame": "영역 간 이동 키와 같으므로 늘리기가 꺼져 있습니다. 다른 키를 고르세요."
 }

@@ -59,6 +59,8 @@
   "settings.swap": "Samainīt ar logu, kas jau ir zonā",
   "restore": "Atjaunot",
   "spanHint": "Velciet vai Shift + bultiņas, lai aptvertu vairākas zonas",
-  "settings.growHint": "Pievienojiet Shift, lai paplašinātu logu pāri zonām vai atkal to samazinātu.",
-  "settings.growTaken": "Bultiņas ar Shift jau izmanto „%1”, tāpēc paplašināšana pāri zonām ir izslēgta."
+  "settings.growHint": "Paplašina aktīvo logu nākamajā zonā un patur zonu, kurā tas sāka; pretējā bultiņa to atkal samazina. Backspace to izslēdz.",
+  "settings.growKeys": "Paplašināt pāri zonām",
+  "settings.growDefault": "Izmantot Super + Ctrl + Alt + Shift",
+  "settings.growSame": "Šie ir taustiņi pārvietošanai starp zonām, tāpēc paplašināšana ir izslēgta. Izvēlieties citus taustiņus."
 }
