@@ -56,5 +56,9 @@
   "settings.moveDefault": "Nota Super + Ctrl + Alt",
   "settings.moveTaken": "Ör með þessum er þegar í notkun hjá „%1“. OmaSizer lætur þá vera; veldu aðra lykla.",
   "settings.moveHint": "Færir virka gluggann á næsta svæði skipanarinnar sem hann var settur úr, eða stjörnumerktu skipanarinnar. Smelltu á reitinn, haltu breytilyklunum niðri og slepptu; Backspace slekkur á því.",
-  "settings.swap": "Skipta við glugga sem er þegar á svæðinu"
+  "settings.swap": "Skipta við glugga sem er þegar á svæðinu",
+  "restore": "Endurheimta",
+  "spanHint": "Dragðu eða Shift + örvar til að ná yfir svæði",
+  "settings.growHint": "Bættu við Shift til að stækka gluggann yfir svæði, eða minnka hann aftur.",
+  "settings.growTaken": "Örvarnar með Shift eru þegar í notkun hjá „%1“, svo stækkun yfir svæði er óvirk."
 }

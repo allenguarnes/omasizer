@@ -56,5 +56,9 @@
   "settings.moveDefault": "Użyj Super + Ctrl + Alt",
   "settings.moveTaken": "Strzałka z tymi klawiszami jest już używana przez „%1”. OmaSizer ich nie rusza; wybierz inne klawisze.",
   "settings.moveHint": "Przenosi aktywne okno do następnej strefy układu, w którym zostało umieszczone, lub układu oznaczonego gwiazdką. Kliknij pole, przytrzymaj modyfikatory i puść; Backspace to wyłącza.",
-  "settings.swap": "Zamień z oknem, które już jest w strefie"
+  "settings.swap": "Zamień z oknem, które już jest w strefie",
+  "restore": "Przywróć",
+  "spanHint": "Przeciągnij lub Shift + strzałki, by objąć kilka stref",
+  "settings.growHint": "Dodaj Shift, aby rozciągnąć okno na kilka stref lub je z powrotem zmniejszyć.",
+  "settings.growTaken": "Strzałki z Shift są już używane przez „%1”, więc rozciąganie na strefy jest wyłączone."
 }

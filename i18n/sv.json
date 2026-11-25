@@ -56,5 +56,9 @@
   "settings.moveDefault": "Använd Super + Ctrl + Alt",
   "settings.moveTaken": "En pil med dessa används redan av ”%1”. OmaSizer rör dem inte; välj andra tangenter.",
   "settings.moveHint": "Flyttar det aktiva fönstret till nästa zon i layouten det placerades från, eller i den stjärnmärkta layouten. Klicka i fältet, håll ned modifierarna och släpp; Backspace stänger av det.",
-  "settings.swap": "Byt plats med ett fönster som redan finns i zonen"
+  "settings.swap": "Byt plats med ett fönster som redan finns i zonen",
+  "restore": "Återställ",
+  "spanHint": "Dra eller Skift + pilar för att spänna över zoner",
+  "settings.growHint": "Lägg till Skift för att utöka fönstret över zoner, eller krympa det igen.",
+  "settings.growTaken": "Pilarna med Skift används redan av ”%1”, så utökning över zoner är avstängd."
 }

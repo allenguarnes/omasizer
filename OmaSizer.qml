@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import QtQuick
 import qs.Commons
@@ -12,7 +13,8 @@ import "Icons.js" as Icons
 // window; opened by a right-click (hypr/omasizer.lua) it sits at the cursor and
 // acts on the window clicked, with a payload of { address, zone, x, y, width, height }.
 // The arrow keys summon it with { move: direction }: it moves the focused window
-// to the next zone of its layout and shows nothing.
+// to the next zone of its layout and shows nothing. With Shift they send
+// { grow: direction }, which grows the window across zones the same way.
 Item {
   id: root
 
@@ -25,6 +27,8 @@ Item {
   property string view: "menu"
   property var settings: Presets.fromShellConfig("")
   property int selectedIndex: 0
+  // Where a span across zones starts, as a selection index; -1 for no span.
+  property int spanAnchor: -1
 
   // The right-clicked window, and the cursor in global layout coordinates.
   property string address: ""
@@ -33,8 +37,12 @@ Item {
   property real cursorY: 0
   property int windowWidth: 0
   property int windowHeight: 0
+  // The window Restore acts on, and where it was before OmaSizer moved it, or null.
+  property string restoreAddress: ""
+  property var restorePlace: null
 
   readonly property string pluginDir: Qt.resolvedUrl(".").toString().replace(/^file:\/\//, "")
+  readonly property string placesPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/nonexistent") + "/omasizer-restore.json"
   readonly property string shellConfigPath: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/omarchy/shell.json"
   // Every zone of every layout, flattened in reading order: each is one stop for the selection.
   readonly property var zoneItems: {
@@ -45,12 +53,21 @@ Item {
         items.push({ layout: l, zone: z, rect: layouts[l].zones[z] })
     return items
   }
-  // The selection runs through the zones, then the presets, then Settings….
+  // The selection runs through the zones, then the presets, then Restore when there is
+  // something to restore, then Settings….
   readonly property int zoneStart: 0
   readonly property int presetStart: root.zoneItems.length
-  readonly property int settingsIndex: root.presetStart + root.settings.presets.length
+  readonly property int restoreIndex: root.restorePlace ? root.presetStart + root.settings.presets.length : -1
+  readonly property int settingsIndex: root.presetStart + root.settings.presets.length + (root.restorePlace ? 1 : 0)
   readonly property int rowCount: root.settingsIndex + 1
   readonly property var selectedZone: root.selectedIndex < root.presetStart ? root.zoneItems[root.selectedIndex - root.zoneStart] : null
+  // The span the selection makes with the anchor: both ends in one layout, or null.
+  readonly property var selectedSpan: {
+    var anchor = root.spanAnchor >= 0 ? root.zoneItems[root.spanAnchor - root.zoneStart] : null
+    var zone = root.selectedZone
+    return anchor && zone && anchor.layout === zone.layout && anchor.zone !== zone.zone
+      ? { layout: zone.layout, first: anchor.zone, last: zone.zone } : null
+  }
   readonly property int rowHeight: Style.font.title + Style.spacing.controlPaddingY * 2
   readonly property int contentMargin: Style.spacing.panelPadding
   readonly property int layoutColumns: Presets.menuColumns(root.settings.layouts.length)
@@ -65,7 +82,9 @@ Item {
     var payload = ({})
     try { payload = JSON.parse(payloadJson || "{}") || ({}) } catch (e) { payload = ({}) }
 
-    if (["left", "right", "up", "down"].indexOf(payload.move) >= 0) {
+    var arrow = ["left", "right", "up", "down"].indexOf(payload.move) >= 0 ? "move"
+      : ["left", "right", "up", "down"].indexOf(payload.grow) >= 0 ? "grow" : ""
+    if (arrow) {
       // Pressed while the menu or settings are open (say, to record new keys), it changes nothing.
       if (root.opened) return
       // Read now: the overlay may have loaded for this keypress, before the file's own load arrived.
@@ -74,7 +93,7 @@ Item {
         starred: Math.max(0, Presets.starredIndex(current.layouts)) }
       root.dismiss()
       // Detached, so it outlives the overlay; bin/omasizer runs one at a time and caps each run at 5 s.
-      if (spec.layouts.length) Quickshell.execDetached([root.pluginDir + "bin/omasizer", "--move", payload.move, JSON.stringify(spec)])
+      if (spec.layouts.length) Quickshell.execDetached([root.pluginDir + "bin/omasizer", "--" + arrow, payload[arrow], JSON.stringify(spec)])
       return
     }
 
@@ -94,8 +113,22 @@ Item {
     root.windowWidth = Presets.validSize(payload.width) ? payload.width : 0
     root.windowHeight = Presets.validSize(payload.height) ? payload.height : 0
 
+    // Restore acts on the right-clicked window, or else on the focused one.
+    var active = Hyprland.activeToplevel ? String(Hyprland.activeToplevel.address || "") : ""
+    if (active && active.indexOf("0x") !== 0) active = "0x" + active
+    root.restoreAddress = root.address || (/^0x[0-9a-f]+$/.test(active) ? active : "")
+    root.restorePlace = null
+    if (root.restoreAddress) {
+      placesFile.reload()
+      try {
+        var place = (JSON.parse(placesFile.text() || "{}") || {})[root.restoreAddress]
+        if (place && Array.isArray(place.box) && place.box.length === 4) root.restorePlace = place
+      } catch (e) {}
+    }
+
     root.view = "menu"
     root.selectedIndex = 0
+    root.spanAnchor = -1
     hoverGate.reset()
     root.opened = true
     if (payload.view === "settings") root.openSettings()
@@ -120,12 +153,17 @@ Item {
     var command = [root.pluginDir + "bin/omasizer"]
     var item = index < root.presetStart ? root.zoneItems[index - root.zoneStart] : null
     var preset = item ? null : root.settings.presets[index - root.presetStart]
-    // The layout goes along, so the window's arrow keys keep to it.
-    if (item) command = command.concat(["--layout", JSON.stringify(root.settings.layouts[item.layout].zones), "--zone"],
-      item.rect.map(function(v) { return v.toFixed(6) }))
-    else if (preset) command = command.concat([String(preset.width), String(preset.height)])
+    var span = root.selectedSpan
+    // The layout goes along, so the window's arrow keys keep to it. A span runs from the anchor
+    // to this zone; a zone alone spans just itself.
+    if (index === root.restoreIndex) {
+      command = command.concat(["--restore", root.restoreAddress])
+    } else if (item) {
+      var first = span && index === root.selectedIndex && span.layout === item.layout ? span.first : item.zone
+      command = command.concat(["--layout", JSON.stringify(root.settings.layouts[item.layout].zones), "--span", String(first), String(item.zone)])
+    } else if (preset) command = command.concat([String(preset.width), String(preset.height)])
     else return
-    if (root.address) command.push(root.address)
+    if (root.address && index !== root.restoreIndex) command.push(root.address)
     root.dismiss()
     // Detached, so it outlives the overlay; bin/omasizer runs one at a time and caps each run at 5 s.
     Quickshell.execDetached(command)
@@ -150,7 +188,17 @@ Item {
   }
 
   function move(delta) {
+    root.spanAnchor = -1
     root.selectedIndex = (root.selectedIndex + delta + root.rowCount) % root.rowCount
+  }
+
+  // With Shift, the selection stretches a span from where it started, within one layout.
+  function extend(delta) {
+    var zone = root.selectedZone
+    if (!zone) return root.move(delta)
+    if (root.spanAnchor < 0) root.spanAnchor = root.selectedIndex
+    var next = root.selectedIndex - zone.zone + Math.max(0, Math.min(root.settings.layouts[zone.layout].zones.length - 1, zone.zone + delta))
+    root.selectedIndex = next
   }
 
   FileView {
@@ -162,6 +210,14 @@ Item {
     onFileChanged: reload()
     onLoaded: root.settings = Presets.fromShellConfig(text())
     onLoadFailed: root.settings = Presets.fromShellConfig("")
+  }
+
+  FileView {
+    id: placesFile
+    path: root.placesPath
+    // A small file in memory, read when the menu opens: a reload must be done before text() returns.
+    blockAllReads: true
+    printErrors: false
   }
 
   PointerMoveGate { id: hoverGate; referenceItem: card }
@@ -210,9 +266,13 @@ Item {
 
         Keys.onPressed: function(event) {
           var digit = event.key - Qt.Key_1
+          var shift = (event.modifiers & Qt.ShiftModifier) && event.key !== Qt.Key_Backtab
+          var back = event.key === Qt.Key_Up || event.key === Qt.Key_K || event.key === Qt.Key_Left || event.key === Qt.Key_H || event.key === Qt.Key_Backtab
+          var forward = event.key === Qt.Key_Down || event.key === Qt.Key_J || event.key === Qt.Key_Right || event.key === Qt.Key_L || event.key === Qt.Key_Tab
           if (event.key === Qt.Key_Escape) root.dismiss()
-          else if (event.key === Qt.Key_Up || event.key === Qt.Key_K || event.key === Qt.Key_Left || event.key === Qt.Key_H || event.key === Qt.Key_Backtab) root.move(-1)
-          else if (event.key === Qt.Key_Down || event.key === Qt.Key_J || event.key === Qt.Key_Right || event.key === Qt.Key_L || event.key === Qt.Key_Tab) root.move(1)
+          else if (back) shift ? root.extend(-1) : root.move(-1)
+          else if (forward) shift ? root.extend(1) : root.move(1)
+          else if (event.key === Qt.Key_Backspace && root.restoreIndex >= 0) root.activate(root.restoreIndex)
           else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) root.activate(root.selectedIndex)
           else if (event.key === Qt.Key_S) root.openSettings()
           else if (digit >= 0 && digit <= 8 && digit < root.settings.presets.length) root.activate(root.presetStart + digit)
@@ -314,7 +374,7 @@ Item {
         MouseArea {
           anchors.fill: parent
           hoverEnabled: true
-          onPositionChanged: function(mouse) { if (hoverGate.moved(menuRow, mouse)) root.selectedIndex = menuRow.rowIndex }
+          onPositionChanged: function(mouse) { if (hoverGate.moved(menuRow, mouse)) { root.spanAnchor = -1; root.selectedIndex = menuRow.rowIndex } }
           onClicked: root.activate(menuRow.rowIndex)
         }
       }
@@ -339,7 +399,7 @@ Item {
           visible: root.zoneItems.length > 0
           topPadding: Style.space(6)
           text: strings.t("zones")
-          trailing: root.selectedZone ? root.settings.layouts[root.selectedZone.layout].name : ""
+          trailing: root.selectedZone ? root.settings.layouts[root.selectedZone.layout].name : strings.t("spanHint")
           trailingAccent: true
         }
 
@@ -370,9 +430,26 @@ Item {
               zones: modelData.zones
               selectedZone: root.selectedIndex - firstItem
               active: selectedZone >= 0 && selectedZone < modelData.zones.length
+              spanFirst: root.selectedSpan && root.selectedSpan.layout === index ? root.selectedSpan.first : -1
+              spanLast: root.selectedSpan && root.selectedSpan.layout === index ? root.selectedSpan.last : -1
               zonesInteractive: true
-              onZoneHovered: function(zone, item, mouse) { if (hoverGate.moved(item, mouse)) root.selectedIndex = firstItem + zone }
-              onZoneClicked: function(zone) { root.activate(firstItem + zone) }
+              // Hovering picks a zone; while a button is down it stretches the span from the zone pressed.
+              onZoneHovered: function(zone, item, mouse) {
+                if (!hoverGate.moved(item, mouse)) return
+                if (!mouse.buttons) root.spanAnchor = -1
+                root.selectedIndex = firstItem + zone
+              }
+              onZonePressed: function(zone) {
+                root.selectedIndex = firstItem + zone
+                root.spanAnchor = root.selectedIndex
+              }
+              // Let go over a zone of this layout, the window takes the span; anywhere else, nothing happens.
+              onZoneReleased: function(zone) {
+                if (zone >= 0 && root.spanAnchor >= 0) {
+                  root.selectedIndex = firstItem + zone
+                  root.activate(root.selectedIndex)
+                } else root.spanAnchor = -1
+              }
             }
           }
         }
@@ -399,6 +476,17 @@ Item {
         }
 
         Item { width: 1; height: Style.space(4) }
+
+        // Shown only when OmaSizer has moved this window and noted where it was.
+        Row_ {
+          visible: root.restoreIndex >= 0
+          rowIndex: root.restoreIndex
+          key: "⌫"
+          icon: Icons.restore
+          label: strings.t("restore")
+          detail: root.restorePlace && root.restorePlace.floating !== false
+            ? Math.round(root.restorePlace.box[2]) + " × " + Math.round(root.restorePlace.box[3]) : ""
+        }
 
         Row_ {
           rowIndex: root.settingsIndex

@@ -56,5 +56,9 @@
   "settings.moveDefault": "Koristi Super + Ctrl + Alt",
   "settings.moveTaken": "Strelicu s ovim tipkama već koristi “%1”. OmaSizer ih ne dira; odaberite druge tipke.",
   "settings.moveHint": "Pomiče fokusirani prozor u sljedeću zonu rasporeda iz kojeg je postavljen ili rasporeda označenog zvjezdicom. Kliknite polje, držite modifikatore i pustite; Backspace to isključuje.",
-  "settings.swap": "Zamijeni s prozorom koji je već u zoni"
+  "settings.swap": "Zamijeni s prozorom koji je već u zoni",
+  "restore": "Vrati",
+  "spanHint": "Povucite ili Shift + strelice za obuhvaćanje zona",
+  "settings.growHint": "Dodajte Shift za širenje prozora preko zona ili njegovo ponovno smanjivanje.",
+  "settings.growTaken": "Strelice sa Shiftom već koristi “%1”, pa je širenje preko zona isključeno."
 }

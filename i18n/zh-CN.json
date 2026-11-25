@@ -56,5 +56,9 @@
   "settings.moveDefault": "使用 Super + Ctrl + Alt",
   "settings.moveTaken": "与这些键组合的方向键已被“%1”占用。OmaSizer 不会更改它们，请另选按键。",
   "settings.moveHint": "将当前窗口移到其所属布局（或星标布局）的下一个区域。点击输入框，按住修饰键后松开；按 Backspace 关闭。",
-  "settings.swap": "与区域中已有的窗口交换"
+  "settings.swap": "与区域中已有的窗口交换",
+  "restore": "还原",
+  "spanHint": "拖动或 Shift + 方向键以跨越多个区域",
+  "settings.growHint": "加上 Shift 可将窗口扩展到多个区域，或再缩回。",
+  "settings.growTaken": "带 Shift 的方向键已被“%1”占用，因此跨区域扩展已关闭。"
 }

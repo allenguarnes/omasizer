@@ -56,5 +56,9 @@
   "settings.moveDefault": "Usar Super + Ctrl + Alt",
   "settings.moveTaken": "Uma seta com essas teclas já é usada por “%1”. O OmaSizer não mexe nelas; escolha outras teclas.",
   "settings.moveHint": "Move a janela em foco para a próxima zona do layout em que foi posicionada, ou do layout marcado com estrela. Clique no campo, segure os modificadores e solte; Backspace desativa.",
-  "settings.swap": "Trocar com uma janela que já esteja na zona"
+  "settings.swap": "Trocar com uma janela que já esteja na zona",
+  "restore": "Restaurar",
+  "spanHint": "Arraste ou Shift + setas para abranger zonas",
+  "settings.growHint": "Adicione Shift para expandir a janela pelas zonas ou encolhê-la de volta.",
+  "settings.growTaken": "Com Shift, as setas já são usadas por “%1”, então expandir pelas zonas está desativado."
 }

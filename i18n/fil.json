@@ -56,5 +56,9 @@
   "settings.moveDefault": "Gamitin ang Super + Ctrl + Alt",
   "settings.moveTaken": "Ginagamit na ng “%1” ang isang arrow kasama ang mga ito. Hindi ito gagalawin ng OmaSizer; pumili ng ibang key.",
   "settings.moveHint": "Inililipat ang naka-focus na window sa susunod na zone ng layout na pinaglagyan nito, o ng layout na may star. I-click ang field, pindutin ang mga modifier at bitawan; pinapatay ito ng Backspace.",
-  "settings.swap": "Makipagpalit sa window na nasa zone na"
+  "settings.swap": "Makipagpalit sa window na nasa zone na",
+  "restore": "Ibalik",
+  "spanHint": "I-drag o Shift + arrow para sumaklaw sa mga zone",
+  "settings.growHint": "Idagdag ang Shift para palakihin ang window sa mga zone, o paliitin itong muli.",
+  "settings.growTaken": "Ginagamit na ng “%1” ang mga arrow na may Shift, kaya naka-off ang pagpapalaki sa mga zone."
 }

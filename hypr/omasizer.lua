@@ -2,13 +2,15 @@
 -- the menu for the focused window, a right-click on a floating window's
 -- titlebar (its buttons included) or its resize border opens it at the cursor
 -- for that window, and modifiers with an arrow key (Super + Ctrl + Alt by
--- default) move the focused window to the next zone of its layout.
+-- default) move the focused window to the next zone of its layout; with Shift
+-- added, they grow it across the zones.
 --
 -- OmaSizer's shell service loads this file with `hyprctl eval` when the shell
 -- starts and after every config reload, first setting `omasizer_shortcut` to
 -- the shortcut to bind, or "" for none, `omasizer_clicks` to which right-clicks
--- open the menu, and `omasizer_move` to the modifiers for the arrows, or "" for
--- none. Loaded from bindings.lua instead, the defaults apply. It also sets
+-- open the menu, `omasizer_move` to the modifiers for the arrows, or "" for
+-- none, and `omasizer_grow` to the modifiers that grow, or "" for none. Loaded from
+-- bindings.lua instead, the defaults apply. It also sets
 -- `omasizer_owner`, a token of the service instance; with `omasizer_unload` set to
 -- that token instead, the file removes everything it bound, if that instance still owns it. Loading it again only changes what differs.
 
@@ -19,7 +21,17 @@ M.DEFAULT_SHORTCUT = "SUPER + ALT + Z"
 M.DESCRIPTION = "OmaSizer: open the menu"
 M.DEFAULT_MOVE = "SUPER + CTRL + ALT"
 M.MOVE_DESCRIPTION = "OmaSizer: move between zones"
+M.GROW_DESCRIPTION = "OmaSizer: grow across zones"
 M.ARROWS = { LEFT = "left", RIGHT = "right", UP = "up", DOWN = "down" }
+
+-- The grow modifiers for `move`: it with Shift added, or "" when it is off or holds Shift.
+-- Presets.js orders modifiers SUPER, CTRL, ALT, SHIFT, so Shift always goes last.
+function M.grow_keys(move)
+  if not move or move == "" or (" + " .. move .. " + "):find(" + SHIFT + ", 1, true) then
+    return ""
+  end
+  return move .. " + SHIFT"
+end
 
 local WORKSPACE_TAG = "omarchy-floating-workspace" -- windows Omarchy's floating mode gives titlebars
 
@@ -194,7 +206,22 @@ end
 
 -- Hyprland keeps this table until its config reloads, which also drops these binds.
 -- `clicks` maps "titlebar" and "border" to false to leave those right-clicks alone.
-function M.register(shortcut, clicks, move, owner)
+local function bind_arrows(modifiers, action, description)
+  for key, direction in pairs(M.ARROWS) do
+    hl.bind(modifiers .. " + " .. key, hl.dsp.exec_cmd("omarchy-shell shell summon omasizer '{\"" .. action .. "\":\"" .. direction .. "\"}'"),
+      { description = description })
+  end
+end
+
+local function unbind_arrows(modifiers)
+  if modifiers and modifiers ~= "" then
+    for key in pairs(M.ARROWS) do
+      hl.unbind(modifiers .. " + " .. key)
+    end
+  end
+end
+
+function M.register(shortcut, clicks, move, owner, grow)
   local state = _G.omasizer_state or {}
   _G.omasizer_state = state
   state.clicks = clicks
@@ -214,14 +241,16 @@ function M.register(shortcut, clicks, move, owner)
   -- Every old key is unbound before any new one is bound, so a new shortcut that was an old arrow key survives.
   -- Only keys this file bound are ever unbound; the service never passes one that is in use.
   move = move or ""
-  local new_shortcut, new_move = state.shortcut ~= shortcut, state.move ~= move
+  grow = grow or ""
+  local new_shortcut, new_move, new_grow = state.shortcut ~= shortcut, state.move ~= move, state.grow ~= grow
   if new_shortcut and state.shortcut and state.shortcut ~= "" then
     hl.unbind(state.shortcut)
   end
-  if new_move and state.move and state.move ~= "" then
-    for key in pairs(M.ARROWS) do
-      hl.unbind(state.move .. " + " .. key)
-    end
+  if new_move then
+    unbind_arrows(state.move)
+  end
+  if new_grow then
+    unbind_arrows(state.grow)
   end
   if new_shortcut then
     if shortcut ~= "" then
@@ -229,15 +258,18 @@ function M.register(shortcut, clicks, move, owner)
     end
     state.shortcut = shortcut
   end
+  -- The overlay runs moves and grows: it holds the layouts, and opens nothing for them.
   if new_move then
-    -- The overlay runs the move: it holds the layouts, and opens nothing for it.
     if move ~= "" then
-      for key, direction in pairs(M.ARROWS) do
-        hl.bind(move .. " + " .. key, hl.dsp.exec_cmd("omarchy-shell shell summon omasizer '{\"move\":\"" .. direction .. "\"}'"),
-          { description = M.MOVE_DESCRIPTION })
-      end
+      bind_arrows(move, "move", M.MOVE_DESCRIPTION)
     end
     state.move = move
+  end
+  if new_grow then
+    if grow ~= "" then
+      bind_arrows(grow, "grow", M.GROW_DESCRIPTION)
+    end
+    state.grow = grow
   end
 end
 
@@ -259,11 +291,8 @@ function M.unregister(owner)
   if state.shortcut and state.shortcut ~= "" then
     hl.unbind(state.shortcut)
   end
-  if state.move and state.move ~= "" then
-    for key in pairs(M.ARROWS) do
-      hl.unbind(state.move .. " + " .. key)
-    end
-  end
+  unbind_arrows(state.move)
+  unbind_arrows(state.grow)
   _G.omasizer_state = nil
 end
 
@@ -280,7 +309,11 @@ elseif hl and hl.bind then
   if move == nil then
     move = M.DEFAULT_MOVE
   end
-  M.register(shortcut, _G.omasizer_clicks, move, _G.omasizer_owner)
+  local grow = _G.omasizer_grow
+  if grow == nil then
+    grow = M.grow_keys(move)
+  end
+  M.register(shortcut, _G.omasizer_clicks, move, _G.omasizer_owner, grow)
 end
 
 return M

@@ -56,5 +56,9 @@
   "settings.moveDefault": "Super + Ctrl + Alt verwenden",
   "settings.moveTaken": "Ein Pfeil mit diesen Tasten ist bereits von „%1“ belegt. OmaSizer lässt sie unangetastet; wähle andere Tasten.",
   "settings.moveHint": "Verschiebt das fokussierte Fenster in die nächste Zone des Layouts, aus dem es platziert wurde, oder des Favoriten-Layouts. Klicke ins Feld, halte die Zusatztasten und lass los; Backspace schaltet es aus.",
-  "settings.swap": "Mit einem Fenster in der Zone tauschen"
+  "settings.swap": "Mit einem Fenster in der Zone tauschen",
+  "restore": "Wiederherstellen",
+  "spanHint": "Ziehen oder Umschalt + Pfeile, um Zonen zu überspannen",
+  "settings.growHint": "Mit Umschalt dazu wächst das Fenster über die Zonen oder schrumpft wieder.",
+  "settings.growTaken": "Die Pfeile mit Umschalt werden schon von „%1“ verwendet, daher ist das Wachsen über Zonen aus."
 }

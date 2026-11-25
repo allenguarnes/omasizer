@@ -56,5 +56,9 @@
   "settings.moveDefault": "Käytä Super + Ctrl + Alt",
   "settings.moveTaken": "Nuoli näiden kanssa on jo käytössä: ”%1”. OmaSizer ei koske niihin; valitse muut näppäimet.",
   "settings.moveHint": "Siirtää kohdistetun ikkunan seuraavalle alueelle asettelussa, josta se sijoitettiin, tai tähdellä merkityssä asettelussa. Napsauta kenttää, pidä muokkausnäppäimiä ja päästä irti; Backspace poistaa sen käytöstä.",
-  "settings.swap": "Vaihda paikkaa alueella jo olevan ikkunan kanssa"
+  "settings.swap": "Vaihda paikkaa alueella jo olevan ikkunan kanssa",
+  "restore": "Palauta",
+  "spanHint": "Vedä tai Vaihto + nuolet ulottuaksesi alueiden yli",
+  "settings.growHint": "Lisää Vaihto, niin ikkuna kasvaa alueiden yli tai pienenee takaisin.",
+  "settings.growTaken": "Nuolet Vaihdon kanssa ovat jo käytössä: ”%1”, joten alueiden yli kasvattaminen on pois päältä."
 }

@@ -56,5 +56,9 @@
   "settings.moveDefault": "Utilitza Super + Ctrl + Alt",
   "settings.moveTaken": "Una fletxa amb aquests ja la fa servir «%1». OmaSizer no les toca; tria altres tecles.",
   "settings.moveHint": "Mou la finestra activa a la zona següent de la disposició des d'on es va col·locar, o de la disposició preferida. Fes clic al camp, mantén els modificadors i deixa'ls anar; Backspace ho desactiva.",
-  "settings.swap": "Intercanvia amb una finestra que ja és a la zona"
+  "settings.swap": "Intercanvia amb una finestra que ja és a la zona",
+  "restore": "Restaura",
+  "spanHint": "Arrossega o Maj + fletxes per abastar zones",
+  "settings.growHint": "Afegeix Maj per estendre la finestra per les zones, o per encongir-la de nou.",
+  "settings.growTaken": "Amb Maj, les fletxes ja les fa servir «%1», així que estendre per les zones està desactivat."
 }

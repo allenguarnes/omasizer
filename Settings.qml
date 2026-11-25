@@ -32,6 +32,9 @@ Column {
   // The modifiers that move a window between zones with the arrows, and what already uses them.
   property string moveKeys: ""
   readonly property string moveHolder: root.service && root.moveKeys ? root.service.moveConflictFor(root.moveKeys) || "" : ""
+  // The same keys with Shift grow a window across zones, unless they hold Shift already.
+  readonly property bool growShown: root.moveKeys !== "" && !root.moveHolder && Presets.growKeys(root.moveKeys) !== ""
+  readonly property string growHolder: root.service && root.growShown ? root.service.growConflictFor(root.moveKeys) || "" : ""
   property var layouts: []
   // The tallest the form may be before it scrolls.
   property real maxHeight: 100000
@@ -637,6 +640,17 @@ Column {
       opacity: root.moveHolder ? 1 : 0.6
       text: root.moveHolder ? root.strings.t("settings.moveTaken").arg(root.moveHolder)
         : root.strings.t("settings.moveHint")
+    }
+
+    Label {
+      width: parent.width
+      visible: root.growShown
+      wrapMode: Text.WordWrap
+      font.pixelSize: Style.font.bodySmall
+      color: root.growHolder ? Commons.Color.urgent : Commons.Color.menu.text
+      opacity: root.growHolder ? 1 : 0.6
+      text: root.growHolder ? root.strings.t("settings.growTaken").arg(root.growHolder)
+        : root.strings.t("settings.growHint")
     }
 
     // On its own line: next to the buttons, a long translation would run into them.

@@ -56,5 +56,9 @@
   "settings.moveDefault": "Guna Super + Ctrl + Alt",
   "settings.moveTaken": "Anak panah dengan kekunci ini sudah digunakan oleh “%1”. OmaSizer tidak mengusiknya; pilih kekunci lain.",
   "settings.moveHint": "Mengalihkan tetingkap yang difokuskan ke zon seterusnya dalam susun atur tempat ia diletakkan, atau susun atur berbintang. Klik medan, tahan pengubah suai dan lepaskan; Backspace mematikannya.",
-  "settings.swap": "Tukar dengan tetingkap yang sudah ada dalam zon"
+  "settings.swap": "Tukar dengan tetingkap yang sudah ada dalam zon",
+  "restore": "Pulihkan",
+  "spanHint": "Seret atau Shift + anak panah untuk merentangi zon",
+  "settings.growHint": "Tambah Shift untuk membesarkan tetingkap merentasi zon, atau mengecilkannya semula.",
+  "settings.growTaken": "Anak panah dengan Shift sudah digunakan oleh “%1”, jadi pembesaran merentasi zon dimatikan."
 }

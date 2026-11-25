@@ -56,5 +56,9 @@
   "settings.moveDefault": "Super + Ctrl + Alt dan foydalanish",
   "settings.moveTaken": "Bular bilan strelka allaqachon “%1” tomonidan band. OmaSizer ularga tegmaydi; boshqa tugmalarni tanlang.",
   "settings.moveHint": "Faol oynani u joylashtirilgan tartibning yoki yulduzchali tartibning keyingi zonasiga koʻchiradi. Maydonni bosing, modifikatorlarni bosib turing va qoʻyib yuboring; Backspace uni oʻchiradi.",
-  "settings.swap": "Zonada turgan oyna bilan oʻrin almashtirish"
+  "settings.swap": "Zonada turgan oyna bilan oʻrin almashtirish",
+  "restore": "Tiklash",
+  "spanHint": "Zonalarni qamrash uchun torting yoki Shift + strelkalar",
+  "settings.growHint": "Oynani zonalar bo‘ylab kattalashtirish yoki qayta kichraytirish uchun Shift qo‘shing.",
+  "settings.growTaken": "Shift bilan strelkalar allaqachon “%1” tomonidan ishlatilmoqda, shuning uchun zonalar bo‘ylab kattalashtirish o‘chiq."
 }

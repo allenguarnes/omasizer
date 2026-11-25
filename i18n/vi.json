@@ -56,5 +56,9 @@
   "settings.moveDefault": "Dùng Super + Ctrl + Alt",
   "settings.moveTaken": "Một phím mũi tên với các phím này đã được “%1” sử dụng. OmaSizer sẽ không đụng tới; hãy chọn phím khác.",
   "settings.moveHint": "Di chuyển cửa sổ đang chọn sang vùng tiếp theo của bố cục đã đặt nó, hoặc của bố cục gắn sao. Nhấp vào ô, giữ các phím bổ trợ rồi thả ra; Backspace để tắt.",
-  "settings.swap": "Hoán đổi với cửa sổ đã có trong vùng"
+  "settings.swap": "Hoán đổi với cửa sổ đã có trong vùng",
+  "restore": "Khôi phục",
+  "spanHint": "Kéo hoặc Shift + mũi tên để trải qua nhiều vùng",
+  "settings.growHint": "Thêm Shift để mở rộng cửa sổ qua các vùng, hoặc thu nhỏ lại.",
+  "settings.growTaken": "Các phím mũi tên với Shift đã được “%1” dùng, nên mở rộng qua các vùng đang tắt."
 }

@@ -56,5 +56,9 @@
   "settings.moveDefault": "Usar Super + Ctrl + Alt",
   "settings.moveTaken": "Una flecha con estos ya la usa “%1”. OmaSizer no las toca; elige otras teclas.",
   "settings.moveHint": "Mueve la ventana enfocada a la siguiente zona de la distribución donde se colocó, o de la distribución favorita. Haz clic en el campo, mantén los modificadores y suelta; Backspace lo desactiva.",
-  "settings.swap": "Intercambiar con una ventana que ya esté en la zona"
+  "settings.swap": "Intercambiar con una ventana que ya esté en la zona",
+  "restore": "Restaurar",
+  "spanHint": "Arrastra o Mayús + flechas para abarcar zonas",
+  "settings.growHint": "Agrega Mayús para extender la ventana por las zonas o volver a encogerla.",
+  "settings.growTaken": "Con Mayús, las flechas ya las usa “%1”, así que extender por las zonas está desactivado."
 }

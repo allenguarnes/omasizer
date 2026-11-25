@@ -56,5 +56,9 @@
   "settings.moveDefault": "Super + Ctrl + Alt használata",
   "settings.moveTaken": "Ezekkel egy nyilat már használ: „%1”. Az OmaSizer nem nyúl hozzájuk; válassz más billentyűket.",
   "settings.moveHint": "Az aktív ablakot annak az elrendezésnek a következő zónájába viszi, amelyből elhelyezték, vagy a csillagozott elrendezésébe. Kattints a mezőbe, tartsd lenyomva a módosítókat, majd engedd el; a Backspace kikapcsolja.",
-  "settings.swap": "Csere a zónában már lévő ablakkal"
+  "settings.swap": "Csere a zónában már lévő ablakkal",
+  "restore": "Visszaállítás",
+  "spanHint": "Húzza vagy Shift + nyilak a zónák átfogásához",
+  "settings.growHint": "Adja hozzá a Shiftet, hogy az ablak több zónára nőjön, vagy visszazsugorodjon.",
+  "settings.growTaken": "A nyilakat Shifttel már használja: „%1”, ezért a zónákra növelés ki van kapcsolva."
 }

@@ -56,5 +56,9 @@
   "settings.moveDefault": "Utiliser Super + Ctrl + Alt",
   "settings.moveTaken": "Une flèche avec ceux-ci est déjà utilisée par « %1 ». OmaSizer n'y touche pas ; choisissez d'autres touches.",
   "settings.moveHint": "Déplace la fenêtre active vers la zone suivante de la disposition d'où elle a été placée, ou de la disposition favorite. Cliquez sur le champ, maintenez les modificateurs et relâchez ; Backspace le désactive.",
-  "settings.swap": "Échanger avec une fenêtre déjà dans la zone"
+  "settings.swap": "Échanger avec une fenêtre déjà dans la zone",
+  "restore": "Restaurer",
+  "spanHint": "Glissez ou Maj + flèches pour couvrir plusieurs zones",
+  "settings.growHint": "Ajoutez Maj pour agrandir la fenêtre sur plusieurs zones, ou la réduire à nouveau.",
+  "settings.growTaken": "Avec Maj, les flèches sont déjà utilisées par « %1 », donc l’agrandissement sur plusieurs zones est désactivé."
 }

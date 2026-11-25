@@ -56,5 +56,9 @@
   "settings.moveDefault": "Usa Super + Ctrl + Alt",
   "settings.moveTaken": "Una freccia con questi è già usata da «%1». OmaSizer non li tocca; scegli altri tasti.",
   "settings.moveHint": "Sposta la finestra attiva nella zona successiva del layout da cui è stata posizionata, o del layout con la stella. Fai clic sul campo, tieni premuti i modificatori e rilascia; Backspace la disattiva.",
-  "settings.swap": "Scambia con una finestra già nella zona"
+  "settings.swap": "Scambia con una finestra già nella zona",
+  "restore": "Ripristina",
+  "spanHint": "Trascina o Maiusc + frecce per estendere su più zone",
+  "settings.growHint": "Aggiungi Maiusc per estendere la finestra su più zone, o restringerla di nuovo.",
+  "settings.growTaken": "Con Maiusc, le frecce sono già usate da «%1», quindi l'estensione su più zone è disattivata."
 }

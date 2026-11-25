@@ -15,6 +15,8 @@ Omarchy 4.5's floating workspaces give every window a titlebar and the freedom t
 - **Open it with the mouse.** Right-click a floating window's titlebar, any of its buttons, or its resize border, and the menu opens right at the cursor.
 - **Or with the keyboard.** <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>Z</kbd> opens it for the focused window. Number keys pick sizes, and arrows walk through the zones.
 - **Move between zones with the arrows.** <kbd>Super</kbd> + <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + an arrow moves the focused window to the next zone of its layout, no menu needed.
+- **Span several zones.** Drag across zones in the menu, or add <kbd>Shift</kbd> to the arrows, and the window covers them all, so a 25:50:25 layout also gives you 75:25 and 25:75.
+- **Restore.** Put a window back where it was before OmaSizer moved it, tiled or maximized again if it was.
 - **Visual zone editor.** Drag zones, resize them by their edges, split and name them. Everything snaps to a grid, so halves, thirds and quarters line up exactly.
 - **Settings in the overlay.** Presets, layouts, gaps and behavior can all be changed with the mouse or entirely from the keyboard.
 - **Feels native.** It follows your Omarchy theme and uses Omarchy's own UI components.
@@ -51,15 +53,21 @@ If <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>Z</kbd>, or an arrow with <kbd>Super
 
 A right-click that opens the menu stays with OmaSizer, so the app in the window doesn't open its own context menu too. Right-clicks inside a window still reach the app, and so do right-clicks on the bar or inside a bar panel, launcher or menu that covers a titlebar. While the resize-border right-click is on, a right-drag on a border no longer resizes the window; drag with the left button, or turn that right-click off in settings.
 
-**Zones** are the layouts drawn as small screens. Click a zone to move the window into it. If the window is in another zone of that layout and a window on the same layout fills the one you pick, the two swap zones. Out of the box you get 50:50, 33:33:33 (each as columns or rows), 75:25, 25:75, 25:50:25, quadrants, and one zone filling the screen within the gaps.
+**Zones** are the layouts drawn as small screens. Click a zone to move the window into it. If the window is in another zone of that layout and a window on the same layout fills the one you pick, the two swap zones.
+
+To **span zones**, press on one zone and drag to another of the same layout before letting go: the window fills the smallest rectangle holding both. From the keyboard, hold <kbd>Shift</kbd> while moving through a layout's zones, then press <kbd>Enter</kbd>. Out of the box you get 50:50, 33:33:33 (each as columns or rows), 75:25, 25:75, 25:50:25, quadrants, and one zone filling the screen within the gaps.
 
 **Sizes** are the presets. Picking one leaves fullscreen or maximized first, floats a tiled window, resizes it and centers it.
+
+**Restore** appears once OmaSizer has moved or resized the window. It puts the window back where it was before OmaSizer first touched it, however many zones or sizes you have tried since: back into the tiling if it was tiled, and maximized or fullscreen again if it was. If you move the window by hand in between, the next zone or size remembers that new place instead. Windows forget their place when they close or you log out.
 
 | Key | Action |
 | --- | --- |
 | <kbd>1</kbd>–<kbd>9</kbd> | Apply that size preset |
 | <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd>, <kbd>Tab</kbd> | Move through zones, then sizes |
-| <kbd>Enter</kbd> | Apply the selected zone or size |
+| <kbd>Shift</kbd> + an arrow, or <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> | Stretch a span across the layout's zones |
+| <kbd>Enter</kbd> | Apply the selected zone, span or size |
+| <kbd>Backspace</kbd> | Restore the window |
 | <kbd>S</kbd> | Open settings |
 | <kbd>Esc</kbd> | Close |
 
@@ -73,6 +81,8 @@ A right-click that opens the menu stays with OmaSizer, so the app in the window 
 - At the last zone in a direction, the window stays put. <kbd>↑</kbd> and <kbd>↓</kbd> do nothing in layouts that are only columns.
 - Windows forget their layout when you resize them to a preset, close them or log out.
 
+Add <kbd>Shift</kbd> (<kbd>Super</kbd> + <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>Shift</kbd> + an arrow) to **grow** the window across zones instead. The zone it started in stays put and the far edge moves to the next zone in that direction, so the opposite arrow shrinks it back. Put a window in the left zone of 33:33:33 and <kbd>Shift</kbd> + <kbd>→</kbd> twice makes it fill all three; <kbd>Shift</kbd> + <kbd>←</kbd> takes it back to two. A plain arrow then moves the window to the next zone past its span. Spans never swap with other windows.
+
 ## Settings
 
 Choose **Settings** at the bottom of the menu, or press <kbd>S</kbd>.
@@ -85,7 +95,7 @@ Choose **Settings** at the bottom of the menu, or press <kbd>S</kbd>.
 - **Zone layouts:** click a layout to edit it, or use **New layout**. To reorder, drag one layout onto another or press <kbd>Alt</kbd> + <kbd>←</kbd>/<kbd>→</kbd>. Click a layout's star, or press <kbd>S</kbd> on it, to star it for the arrow keys. **Restore defaults** brings back the built-in layouts. **Swap with a window already in the zone** turns zone swapping on or off for the menu and the arrow keys.
 - **Zone gaps:** set the space at the screen edges and between windows. These start from Omarchy's own spacing; once you save, OmaSizer keeps your values.
 - **Open the menu:** record a different keyboard shortcut (click the field and press the keys; <kbd>Backspace</kbd> turns it off), and turn the titlebar and resize-border right-click on or off. If the shortcut you pick is already in use, settings say by what, and OmaSizer won't take it over.
-- **Move between zones:** record different modifiers for the arrow keys (click the field, hold the modifiers together and let go; <kbd>Backspace</kbd> turns them off). They're checked against your other bindings the same way.
+- **Move between zones:** record different modifiers for the arrow keys (click the field, hold the modifiers together and let go; <kbd>Backspace</kbd> turns them off). They're checked against your other bindings the same way. The same modifiers with <kbd>Shift</kbd> grow windows across zones; if those are taken, or your modifiers already include <kbd>Shift</kbd>, only growing is left off.
 
 Changes take effect when you press **Save**. **Cancel** or <kbd>Esc</kbd> discards them.
 
@@ -112,12 +122,17 @@ o.bind("SUPER + CTRL + ALT + 1", "Window 1280×720", "~/.config/omarchy/plugins/
 o.bind("SUPER + CTRL + ALT + 2", "Window to left half", "~/.config/omarchy/plugins/omasizer/bin/omasizer --zone 0 0 0.5 1")
 ```
 
+```lua
+o.bind("SUPER + CTRL + ALT + BACKSPACE", "Restore window", "~/.config/omarchy/plugins/omasizer/bin/omasizer --restore")
+```
+
 ```text
 omasizer <width> <height> [window-address]
 omasizer --zone <x> <y> <width> <height> [window-address]
+omasizer --restore [window-address]
 ```
 
-Sizes are in logical pixels. A zone is given as fractions (0 to 1) of the monitor's usable area. Both act on the focused window unless a Hyprland window address is given.
+Sizes are in logical pixels. A zone is given as fractions (0 to 1) of the monitor's usable area. Each acts on the focused window unless a Hyprland window address is given.
 
 ## Configuration
 
@@ -149,7 +164,7 @@ Settings are stored in OmaSizer's entry in `~/.config/omarchy/shell.json`. Anyth
 | `titlebarClick`, `borderClick` | Whether a right-click on a titlebar or a resize border opens the menu. |
 | `swap` | Whether a window moved into a zone swaps with a window on the same layout already there. |
 | `shortcut` | The keyboard shortcut, as modifiers and one key (`"SUPER + ALT + Z"`), or `""` for none. |
-| `moveKeys` | The modifiers that move a window between zones with the arrow keys (`"SUPER + CTRL + ALT"`), or `""` for none. |
+| `moveKeys` | The modifiers that move a window between zones with the arrow keys (`"SUPER + CTRL + ALT"`), or `""` for none. With <kbd>Shift</kbd> added, the arrows grow the window across zones. |
 
 ## Known limitations
 

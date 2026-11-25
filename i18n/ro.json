@@ -56,5 +56,9 @@
   "settings.moveDefault": "Folosește Super + Ctrl + Alt",
   "settings.moveTaken": "O săgeată cu aceștia e deja folosită de „%1”. OmaSizer nu le atinge; alege alte taste.",
   "settings.moveHint": "Mută fereastra activă în zona următoare a aranjării din care a fost plasată sau a aranjării marcate cu stea. Dă clic pe câmp, ține modificatorii și eliberează; Backspace o dezactivează.",
-  "settings.swap": "Schimbă cu o fereastră aflată deja în zonă"
+  "settings.swap": "Schimbă cu o fereastră aflată deja în zonă",
+  "restore": "Restabilește",
+  "spanHint": "Trageți sau Shift + săgeți pentru a acoperi mai multe zone",
+  "settings.growHint": "Adăugați Shift pentru a extinde fereastra peste zone sau a o micșora la loc.",
+  "settings.growTaken": "Săgețile cu Shift sunt deja folosite de „%1”, așa că extinderea peste zone este oprită."
 }

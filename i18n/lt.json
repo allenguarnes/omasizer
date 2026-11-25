@@ -56,5 +56,9 @@
   "settings.moveDefault": "Naudoti Super + Ctrl + Alt",
   "settings.moveTaken": "Rodyklę su šiais klavišais jau naudoja „%1“. OmaSizer jų neliečia; pasirinkite kitus klavišus.",
   "settings.moveHint": "Perkelia aktyvų langą į kitą zoną išdėstyme, iš kurio jis buvo padėtas, arba žvaigždute pažymėtame išdėstyme. Spustelėkite lauką, laikykite modifikavimo klavišus ir atleiskite; Backspace tai išjungia.",
-  "settings.swap": "Sukeisti su zonoje jau esančiu langu"
+  "settings.swap": "Sukeisti su zonoje jau esančiu langu",
+  "restore": "Atkurti",
+  "spanHint": "Vilkite arba Shift + rodyklės, kad apimtumėte kelias zonas",
+  "settings.growHint": "Pridėkite Shift, kad langas išsiplėstų per zonas arba vėl susitrauktų.",
+  "settings.growTaken": "Rodykles su Shift jau naudoja „%1“, todėl plėtimas per zonas išjungtas."
 }

@@ -11,7 +11,7 @@ cat >"$tmp/hyprctl" <<'STUB'
 #!/bin/bash
 case "$1 $2" in
 "activewindow -j") echo '{"address":"0xabc","floating":true,"fullscreen":'"${FS:-0}"',"monitor":0,"workspace":{"id":1},"at":['"${AT:-300,200}"'],"size":['"${SIZE:-800,600}"'],"tags":["omarchy-floating-workspace","terminal*"]}' ;;
-"clients -j") [[ -n ${CLIENTS:-} ]] && echo "$CLIENTS" || echo '[{"address":"0xdef","floating":false,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[5,5],"tags":[]}]' ;;
+"clients -j") [[ -n ${CLIENTS:-} ]] && echo "$CLIENTS" || echo '[{"address":"0xdef","floating":false,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[5,5],"size":[800,600],"tags":[]}]' ;;
 "monitors -j") echo '[{"id":0,"x":0,"y":0,"width":3200,"height":2000,"scale":1.6666666,"transform":0,"reserved":[0,26,0,0]}]' ;;
 "getoption general:gaps_out") echo '{"css":"10 10 10 10"}' ;;
 "getoption general:gaps_in") echo '{"css":"5 5 5 5"}' ;;
@@ -120,9 +120,72 @@ AT=12,68 SIZE=941,538 timeout 10 "$root/bin/omasizer" --layout "$quads" --zone 0
 [[ $(grep 'hl.dsp.focus' "$LOG") == 'hl.dsp.focus({ window = "address:0xabc" })' ]] || { echo "swap focused: $(grep 'hl.dsp.focus' "$LOG")" >&2; exit 1; }
 unset CLIENTS
 
+# Spans: the smallest box holding the first and last zone, in either order.
+thirds='[[0,0,0.333333,1],[0.333333,0,0.333333,1],[0.666667,0,0.333333,1]]'
+tspec='{"layouts":['"$thirds"'],"starred":0}'
+third=$'hl.dsp.window.resize({ x = 624, y = 1120 })\nhl.dsp.window.move({ x = '
+two_thirds=$'hl.dsp.window.resize({ x = 1258, y = 1120 })\nhl.dsp.window.move({ x = 12, y = 68 })'
+middle=$'hl.dsp.window.resize({ x = 619, y = 1120 })\nhl.dsp.window.move({ x = 650, y = 68 })'
+all_thirds=$'hl.dsp.window.resize({ x = 1896, y = 1120 })\nhl.dsp.window.move({ x = 12, y = 68 })'
+rm -f "$tmp/omasizer-layouts.json"
+expect "$two_thirds" --layout "$thirds" --span 0 1
+expect "$all_thirds" --layout "$thirds" --span 2 0
+[[ $(jq -c '."0xabc".span' "$tmp/omasizer-layouts.json") == '[2,0]' ]] || { echo "span memory: $(cat "$tmp/omasizer-layouts.json")" >&2; exit 1; }
+# A grow keeps the first zone and moves the last one, growing and shrinking the span.
+expect "${third}12, y = 68 })" --layout "$thirds" --span 0 0
+AT=12,68 SIZE=624,1120 expect "$two_thirds" --grow right "$tspec"
+AT=12,68 SIZE=1258,1120 expect "$all_thirds" --grow right "$tspec"
+AT=12,68 SIZE=1896,1120 expect "" --grow right "$tspec"
+AT=12,68 SIZE=1896,1120 expect "$two_thirds" --grow left "$tspec"
+AT=12,68 SIZE=1258,1120 expect "${third}12, y = 68 })" --grow left "$tspec"
+AT=12,68 SIZE=624,1120 expect "" --grow left "$tspec"
+# A move takes a span to the next zone outside it; a free window grows into the nearest zone.
+expect "$two_thirds" --layout "$thirds" --span 0 1
+AT=12,68 SIZE=1258,1120 expect "${third}1284, y = 68 })" --move right "$tspec"
+expect "$two_thirds" --layout "$thirds" --span 0 1
+AT=12,68 SIZE=1258,1120 expect "" --move left "$tspec"
+rm -f "$tmp/omasizer-layouts.json"
+expect "${third}12, y = 68 })" --grow left "$tspec"
+# A span resized by hand is no span any more: the arrows treat the window as free.
+expect "$two_thirds" --layout "$thirds" --span 0 1
+AT=12,68 SIZE=1000,1120 expect "$middle" --move right "$tspec"
+# A layout remembered by OmaSizer 1.3, as bare zones, still counts.
+echo '{"0xabc":'"$thirds"'}' >"$tmp/omasizer-layouts.json"
+AT=12,68 SIZE=624,1120 expect "$middle" --move right '{"layouts":['"$halves,$thirds"'],"starred":0}'
+# A span never swaps; the window in the zone keeps it.
+export CLIENTS='[{"address":"0xabc","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[12,68],"size":[624,1120],"tags":["omarchy-floating-workspace"]},{"address":"0xdef","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[650,68],"size":[619,1120],"tags":["omarchy-floating-workspace"]}]'
+run --layout "$thirds" --span 1 1 0xdef >/dev/null
+AT=12,68 SIZE=624,1120 expect "$two_thirds" --grow right "$tspec"
+unset CLIENTS
+
+# Restore: back to where the window was before OmaSizer first moved it, however many moves since.
+rm -f "$tmp/omasizer-restore.json"
+export CLIENTS='[{"address":"0xabc","floating":true,"fullscreen":0,"monitor":0,"workspace":{"id":1},"at":[12,68],"size":[941,1120],"tags":["omarchy-floating-workspace"]}]'
+before=$'hl.dsp.window.resize({ x = 800, y = 600 })\nhl.dsp.window.move({ x = 300, y = 200 })'
+expect "$left" --zone 0 0 0.5 1
+AT=12,68 SIZE=941,1120 expect "$right" --zone 0.5 0 0.5 1
+AT=12,68 SIZE=941,1120 expect "$before" --restore
+# Then there is nothing left to restore, and the window has left its layout.
+AT=300,200 SIZE=800,600 expect "" --restore
+[[ $(jq -c 'has("0xabc")' "$tmp/omasizer-layouts.json") == false ]] || { echo "restore kept the layout" >&2; exit 1; }
+# Moved by hand since OmaSizer placed it, it restores to where it was moved.
+expect "$left" --zone 0 0 0.5 1
+AT=500,400 SIZE=941,1120 expect "$left" --zone 0 0 0.5 1
+AT=12,68 SIZE=941,1120 expect $'hl.dsp.window.resize({ x = 941, y = 1120 })\nhl.dsp.window.move({ x = 500, y = 400 })' --restore
+# A maximized window is maximized again.
+FS=1 expect $'hl.dsp.window.fullscreen({ mode = "maximized", action = "unset",  })\n'"$left" --zone 0 0 0.5 1
+AT=12,68 SIZE=941,1120 expect "$before"$'\nhl.dsp.window.fullscreen({ mode = "maximized", action = "set",  })' --restore
+unset CLIENTS
+# A tiled window goes back into the tiling.
+expect $'hl.dsp.window.float({ action = "enable" })\nhl.dsp.window.resize({ x = 941, y = 1150 })\nhl.dsp.window.move({ x = 12, y = 38 })' --zone 0 0 0.5 1 0xdef
+expect $'hl.dsp.window.float({ action = "disable" })' --restore 0xdef
+rm -f "$tmp/omasizer-restore.json"
+
 # Bad arguments are refused before anything is dispatched.
 for args in "0 600" "--zone 0 0 1.5 1" "--zone 0 0 x 1" "--zone 0 0 1" "--move left" "--move sideways $spec" \
-  '--move left {"layouts":[],"starred":0}' "--move left {\"layouts\":[$halves],\"starred\":1}" "--layout [[0,0,2,1]] --zone 0 0 1 1" "--layout $halves 800 600"; do
+  '--move left {"layouts":[],"starred":0}' "--move left {\"layouts\":[$halves],\"starred\":1}" "--layout [[0,0,2,1]] --zone 0 0 1 1" "--layout $halves 800 600" \
+  "--layout $halves --span 0 2" "--layout $halves --span x 1" "--layout $halves --span 0" "--span 0 1" "--grow left" \
+  "--grow sideways $spec" "--restore 0xabc extra" "--restore window" "800 600 window"; do
   if "$root/bin/omasizer" $args 2>/dev/null; then echo "accepted: $args" >&2; exit 1; fi
 done
 

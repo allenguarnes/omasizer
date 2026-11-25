@@ -56,5 +56,9 @@
   "settings.moveDefault": "Úsáid Super + Ctrl + Alt",
   "settings.moveTaken": "Tá saighead leo seo in úsáid cheana ag “%1”. Fágann OmaSizer iad; roghnaigh eochracha eile.",
   "settings.moveHint": "Bogann sé an fhuinneog fhócasaithe go dtí an chéad chrios eile den leagan amach ónar cuireadh í, nó den leagan amach le réalta. Cliceáil an réimse, coinnigh na mionathraitheoirí agus scaoil iad; múchann Backspace é.",
-  "settings.swap": "Malartaigh le fuinneog atá sa chrios cheana"
+  "settings.swap": "Malartaigh le fuinneog atá sa chrios cheana",
+  "restore": "Athchóirigh",
+  "spanHint": "Tarraing nó Shift + saighde chun criosanna a chuimsiú",
+  "settings.growHint": "Cuir Shift leis chun an fhuinneog a mhéadú thar chriosanna, nó í a laghdú arís.",
+  "settings.growTaken": "Tá na saighde le Shift in úsáid cheana ag “%1”, mar sin tá méadú thar chriosanna múchta."
 }

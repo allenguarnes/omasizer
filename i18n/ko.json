@@ -56,5 +56,9 @@
   "settings.moveDefault": "Super + Ctrl + Alt 사용",
   "settings.moveTaken": "이 조합의 화살표 키는 이미 “%1”에서 사용 중입니다. OmaSizer는 건드리지 않으니 다른 키를 선택하세요.",
   "settings.moveHint": "포커스된 창을 배치된 레이아웃 또는 별표 레이아웃의 다음 영역으로 이동합니다. 필드를 클릭하고 보조키를 누른 채로 있다가 떼세요. Backspace를 누르면 꺼집니다.",
-  "settings.swap": "영역에 이미 있는 창과 교체"
+  "settings.swap": "영역에 이미 있는 창과 교체",
+  "restore": "복원",
+  "spanHint": "드래그하거나 Shift + 화살표로 여러 영역에 걸치기",
+  "settings.growHint": "Shift를 더하면 창을 여러 영역으로 늘리거나 다시 줄일 수 있습니다.",
+  "settings.growTaken": "Shift와 화살표는 이미 “%1”에서 사용 중이므로 영역 확장은 꺼져 있습니다."
 }

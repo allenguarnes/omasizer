@@ -100,6 +100,25 @@ assert(register("SUPER + O", "SUPER + CTRL + ALT") == "bind SUPER + CTRL + ALT +
 assert(register("SUPER + O", "SUPER + CTRL + ALT") == "")
 assert(register("SUPER + O", "SUPER + SHIFT") == "bind SUPER + SHIFT + DOWN, bind SUPER + SHIFT + LEFT, bind SUPER + SHIFT + RIGHT, bind SUPER + SHIFT + UP, unbind SUPER + CTRL + ALT + DOWN, unbind SUPER + CTRL + ALT + LEFT, unbind SUPER + CTRL + ALT + RIGHT, unbind SUPER + CTRL + ALT + UP")
 assert(register("SUPER + O", "") == "unbind SUPER + SHIFT + DOWN, unbind SUPER + SHIFT + LEFT, unbind SUPER + SHIFT + RIGHT, unbind SUPER + SHIFT + UP")
+-- The grow arrows: the move keys with Shift, bound and swapped on their own.
+assert(M.grow_keys("SUPER + CTRL + ALT") == "SUPER + CTRL + ALT + SHIFT")
+assert(M.grow_keys("SUPER + SHIFT") == "" and M.grow_keys("") == "" and M.grow_keys(nil) == "")
+local function register_grow(move, grow)
+  calls = {}
+  M.register("SUPER + O", nil, move, nil, grow)
+  table.sort(calls)
+  return table.concat(calls, ", ")
+end
+assert(register_grow("SUPER + CTRL", "SUPER + CTRL + SHIFT") == "bind SUPER + CTRL + DOWN, bind SUPER + CTRL + LEFT, bind SUPER + CTRL + RIGHT, bind SUPER + CTRL + SHIFT + DOWN, bind SUPER + CTRL + SHIFT + LEFT, bind SUPER + CTRL + SHIFT + RIGHT, bind SUPER + CTRL + SHIFT + UP, bind SUPER + CTRL + UP")
+assert(register_grow("SUPER + CTRL", "SUPER + CTRL + SHIFT") == "")
+assert(register_grow("SUPER + CTRL", "") == "unbind SUPER + CTRL + SHIFT + DOWN, unbind SUPER + CTRL + SHIFT + LEFT, unbind SUPER + CTRL + SHIFT + RIGHT, unbind SUPER + CTRL + SHIFT + UP")
+-- Old grow keys that become the new move keys are unbound before they are bound again.
+register_grow("SUPER + CTRL", "SUPER + CTRL + SHIFT")
+calls = {}
+M.register("SUPER + O", nil, "SUPER + CTRL + SHIFT", nil, "")
+assert(calls[#calls]:find("^bind SUPER %+ CTRL %+ SHIFT %+ ") and not table.concat(calls, ","):find("unbind[^,]*, bind[^,]*, unbind"))
+register_grow("", "")
+
 -- Old keys go before new ones are bound, so a shortcut that was an old arrow key survives the change.
 register("SUPER + O", "SUPER + SHIFT")
 calls = {}
@@ -111,13 +130,13 @@ assert(calls[#calls] == "bind SUPER + SHIFT + LEFT")
 _G.omasizer_state = nil
 calls = {}
 M.register("SUPER + O", nil, "SUPER + SHIFT", "old")
-M.register("SUPER + O", nil, "SUPER + SHIFT", "new")
+M.register("SUPER + O", nil, "SUPER + SHIFT", "new", "SUPER + CTRL")
 calls = {}
 M.unregister("old")
 assert(#calls == 0 and _G.omasizer_state ~= nil)
 M.unregister("new")
 table.sort(calls)
-assert(table.concat(calls, ", ") == "unbind SUPER + O, unbind SUPER + SHIFT + DOWN, unbind SUPER + SHIFT + LEFT, unbind SUPER + SHIFT + RIGHT, unbind SUPER + SHIFT + UP")
+assert(table.concat(calls, ", ") == "unbind SUPER + CTRL + DOWN, unbind SUPER + CTRL + LEFT, unbind SUPER + CTRL + RIGHT, unbind SUPER + CTRL + UP, unbind SUPER + O, unbind SUPER + SHIFT + DOWN, unbind SUPER + SHIFT + LEFT, unbind SUPER + SHIFT + RIGHT, unbind SUPER + SHIFT + UP")
 assert(_G.omasizer_state == nil)
 M.unregister("new")                                  -- twice is harmless
 calls = {}

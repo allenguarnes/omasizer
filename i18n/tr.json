@@ -56,5 +56,9 @@
   "settings.moveDefault": "Super + Ctrl + Alt kullan",
   "settings.moveTaken": "Bunlarla bir ok tuşu zaten “%1” tarafından kullanılıyor. OmaSizer onlara dokunmaz; başka tuşlar seçin.",
   "settings.moveHint": "Odaktaki pencereyi, yerleştirildiği düzenin ya da yıldızlı düzenin bir sonraki bölgesine taşır. Alana tıklayın, değiştiricileri basılı tutup bırakın; Backspace kapatır.",
-  "settings.swap": "Bölgede zaten olan bir pencereyle yer değiştir"
+  "settings.swap": "Bölgede zaten olan bir pencereyle yer değiştir",
+  "restore": "Geri yükle",
+  "spanHint": "Bölgelere yaymak için sürükleyin veya Shift + oklar",
+  "settings.growHint": "Pencereyi bölgeler boyunca büyütmek ya da geri küçültmek için Shift ekleyin.",
+  "settings.growTaken": "Shift ile oklar zaten “%1” tarafından kullanılıyor, bu yüzden bölgeler boyunca büyütme kapalı."
 }

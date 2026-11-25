@@ -56,5 +56,9 @@
   "settings.moveDefault": "Kasuta Super + Ctrl + Alt",
   "settings.moveTaken": "Nool nendega on juba kasutusel: „%1“. OmaSizer jätab need rahule; vali muud klahvid.",
   "settings.moveHint": "Liigutab fookuses oleva akna järgmisse tsooni paigutuses, kust see paigutati, või tärniga paigutuses. Klõpsa väljal, hoia muuteklahve ja lase lahti; Backspace lülitab selle välja.",
-  "settings.swap": "Vaheta tsoonis juba oleva aknaga"
+  "settings.swap": "Vaheta tsoonis juba oleva aknaga",
+  "restore": "Taasta",
+  "spanHint": "Lohista või Shift + nooled, et katta mitu tsooni",
+  "settings.growHint": "Lisa Shift, et laiendada akent üle tsoonide või seda taas kahandada.",
+  "settings.growTaken": "Nooled koos Shiftiga on juba kasutusel: „%1“, seega tsoonide üle laiendamine on väljas."
 }

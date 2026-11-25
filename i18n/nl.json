@@ -56,5 +56,9 @@
   "settings.moveDefault": "Super + Ctrl + Alt gebruiken",
   "settings.moveTaken": "Een pijl met deze toetsen is al in gebruik door “%1”. OmaSizer laat ze met rust; kies andere toetsen.",
   "settings.moveHint": "Verplaatst het actieve venster naar de volgende zone van de indeling waarin het is geplaatst, of van de indeling met ster. Klik op het veld, houd de modificatietoetsen vast en laat los; Backspace schakelt het uit.",
-  "settings.swap": "Wisselen met een venster dat al in de zone staat"
+  "settings.swap": "Wisselen met een venster dat al in de zone staat",
+  "restore": "Herstellen",
+  "spanHint": "Sleep of Shift + pijlen om zones te overspannen",
+  "settings.growHint": "Voeg Shift toe om het venster over zones te laten groeien, of weer te laten krimpen.",
+  "settings.growTaken": "De pijlen met Shift worden al gebruikt door “%1”, dus groeien over zones staat uit."
 }

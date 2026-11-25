@@ -3,7 +3,10 @@
 # Resize the focused (or given) Hyprland window to a size, or place it in a zone.
 #   omasizer <width> <height> [window-address]
 #   omasizer [--layout <zones-json>] --zone <x> <y> <width> <height> [window-address]
+#   omasizer --layout <zones-json> --span <first> <last> [window-address]
 #   omasizer --move <left|right|up|down> <layouts-json> [window-address]
+#   omasizer --grow <left|right|up|down> <layouts-json> [window-address]
+#   omasizer --restore [window-address]
 # A size is in logical pixels; the center and clamp settings come from OmaSizer's
 # entry in ~/.config/omarchy/shell.json. A zone is a rectangle given as fractions
 # (0 to 1) of the monitor's usable area, laid out with the gaps saved in settings,
@@ -15,6 +18,16 @@
 # the layout it remembers, or the starred one; past the last zone it stays put.
 # Placed in a zone of a layout, by either, a window already in that zone and on
 # the same layout swaps zones with it.
+#
+# --span places the window across zones <first> to <last> of the layout (indices
+# from 0): it fills the smallest rectangle holding both. --grow keeps the zone the
+# span started from and moves its other end to the next zone in that direction,
+# so it grows the span, or shrinks it back.
+#
+# Before OmaSizer first moves or resizes a window, it notes where the window was;
+# --restore puts it back there (tiled, maximized or fullscreen again if it was),
+# until the window closes or the session ends. A window moved by hand since keeps
+# OmaSizer from restoring an older place: the next change notes the new one.
 
 set -euo pipefail
 
@@ -28,7 +41,10 @@ fi
 usage() {
   echo "Usage: omasizer <width> <height> [window-address]" >&2
   echo "       omasizer [--layout <zones-json>] --zone <x> <y> <width> <height> [window-address]" >&2
+  echo "       omasizer --layout <zones-json> --span <first> <last> [window-address]" >&2
   echo "       omasizer --move <left|right|up|down> <layouts-json> [window-address]" >&2
+  echo "       omasizer --grow <left|right|up|down> <layouts-json> [window-address]" >&2
+  echo "       omasizer --restore [window-address]" >&2
   exit 1
 }
 
@@ -54,22 +70,44 @@ geometry='
     | ($area[1] + $gt + ($zone[1] + $zone[3]) * $h - (if $zone[1] + $zone[3] < 0.999 then $ib else 0 end)) as $bottom
     | [$left + $border, $top + $border + $bar, $right - $left - 2 * $border, $bottom - $top - 2 * $border - $bar]
     | map(round) | [.[0], .[1], ([.[2], 1] | max), ([.[3], 1] | max)];
-  def frame($zone): frame($zone; $bar);'
+  def frame($zone): frame($zone; $bar);
+  # The smallest zone holding all of $zones, and the zones from index $a to $b span.
+  def bbox($zones): ($zones | map(.[0]) | min) as $x | ($zones | map(.[1]) | min) as $y
+    | [$x, $y, ($zones | map(.[0] + .[2]) | max) - $x, ($zones | map(.[1] + .[3]) | max) - $y];
+  def span_zone($zones; $span): bbox([$zones[$span[0]], $zones[$span[1]]]);
+  # Whether a window box fills a frame, give or take rounding.
+  def fits($frame; $box): [$frame, $box] | transpose | all(.[0] - .[1] | fabs <= 2);
+  # A remembered layout: an object with its zones and span, or, from 1.3, the zones alone.
+  def remembered: if type == "array" then { zones: ., span: null } elif type == "object" and (.zones | type) == "array" then . else null end;'
 
-layout=""
+layout="" span=""
 if [[ ${1:-} == --layout ]]; then
   layout=${2:-}
   jq -en --argjson l "$layout" "$geometry \$l | valid_layout" >/dev/null 2>&1 || usage
   shift 2
-  [[ ${1:-} == --zone ]] || usage
+  if [[ ${1:-} == --span ]]; then
+    [[ ${2:-} =~ ^[0-9]{1,2}$ && ${3:-} =~ ^[0-9]{1,2}$ ]] || usage
+    span="[$((10#$2)), $((10#$3))]"
+    jq -en --argjson l "$layout" --argjson s "$span" 'all($s[]; . < ($l | length))' >/dev/null 2>&1 || usage
+    read -r zone_x zone_y zone_w zone_h < <(jq -rn --argjson l "$layout" --argjson s "$span" "$geometry"' span_zone($l; $s) | map(tostring) | join(" ")')
+    mode=zone address=${4:-}
+  else
+    [[ ${1:-} == --zone ]] || usage
+  fi
 fi
 
-if [[ ${1:-} == --move ]]; then
-  mode=move
+if [[ -n $span ]]; then
+  :
+elif [[ ${1:-} == --move || ${1:-} == --grow ]]; then
+  mode=${1#--}
   direction=${2:-} spec=${3:-} address=${4:-}
   [[ $direction =~ ^(left|right|up|down)$ ]] || usage
   jq -en --argjson s "$spec" "$geometry"' $s | type == "object" and (.layouts | type == "array" and length >= 1 and length <= 20 and all(.[]; valid_layout))
     and (.starred | type == "number" and . == floor and . >= 0) and .starred < (.layouts | length)' >/dev/null 2>&1 || usage
+elif [[ ${1:-} == --restore ]]; then
+  mode=restore
+  address=${2:-}
+  (( $# <= 2 )) || usage
 elif [[ ${1:-} == --zone ]]; then
   mode=zone
   zone_x=${2:-} zone_y=${3:-} zone_w=${4:-} zone_h=${5:-} address=${6:-}
@@ -77,11 +115,17 @@ elif [[ ${1:-} == --zone ]]; then
     [[ $value =~ $fraction ]] || usage
   done
   jq -en "$geometry [$zone_x, $zone_y, $zone_w, $zone_h] | valid_zone" >/dev/null 2>&1 || usage
+  # A zone of the layout it came from spans just itself.
+  if [[ -n $layout ]]; then
+    span=$(jq -cn --argjson l "$layout" --argjson z "[$zone_x, $zone_y, $zone_w, $zone_h]" '
+      first(range($l | length) as $i | select(($l[$i] | map(. * 1e6 | round)) == ($z | map(. * 1e6 | round))) | [$i, $i]) // empty')
+  fi
 else
   mode=size
   width=${1:-} height=${2:-} address=${3:-}
   [[ $width =~ ^[1-9][0-9]{0,4}$ && $height =~ ^[1-9][0-9]{0,4}$ ]] && (( width <= 16384 && height <= 16384 )) || usage
 fi
+[[ -z $address || $address =~ ^0x[0-9a-f]+$ ]] || usage
 
 # One runs at a time: a request that can't start within a second is dropped.
 run_dir=${XDG_RUNTIME_DIR:?omasizer: XDG_RUNTIME_DIR is not set}
@@ -126,64 +170,89 @@ frame_args=(
 )
 frame_args+=(--argjson bar "$([[ $titlebar == true ]] && echo "${frame_args[-1]}" || echo 0)")
 
-# Which layout each window was last placed in: window address to that layout's zones.
+# Which layout each window was last placed in: window address to { zones, span },
+# the layout's zones and the first and last zone it spans.
 memory=$run_dir/omasizer-layouts.json
+# Where each window was before OmaSizer first moved it: window address to
+# { box, floating, fullscreen, placed }, placed being where OmaSizer last put it.
+places=$run_dir/omasizer-restore.json
+box=$(jq -c '[.at[0], .at[1], .size[0], .size[1]]' <<<"$client")
 
-if [[ $mode == move ]]; then
+if [[ $mode == move || $mode == grow ]]; then
   remembered=$(jq -c --arg a "$address" '.[$a] // null' "$memory" 2>/dev/null) || remembered=null
 
   # The window's layout: the one it remembers if that still exists, else the starred one.
-  # Its zone is the one whose frame it fills; otherwise it is free and its own box counts.
-  # The next zone lies beyond it in the direction and overlaps it across; the nearest wins.
+  # Its span is the remembered one if it still fills it, else the one zone whose frame
+  # it fills; otherwise it is free and its own box counts.
+  # A move goes from the whole span to the next zone outside it; a grow moves the span's
+  # last zone and keeps its first. The next zone lies beyond in the direction and overlaps
+  # across; the nearest wins.
   target=$(jq -rn "${frame_args[@]}" --argjson spec "$spec" --argjson remembered "${remembered:-null}" \
-    --argjson window "$(jq -c '[.at[0], .at[1], .size[0], .size[1]]' <<<"$client")" --arg dir "$direction" "$geometry"'
+    --argjson window "$box" --arg dir "$direction" --arg mode "$mode" "$geometry"'
     def center($i): .[$i] + .[$i + 2] / 2;
     def overlap($a; $b; $i): ([$a[$i] + $a[$i + 2], $b[$i] + $b[$i + 2]] | min) - ([$a[$i], $b[$i]] | max);
-    (if $remembered != null and any($spec.layouts[]; . == $remembered) then $remembered else $spec.layouts[$spec.starred] end) as $zones
-    | (first(range($zones | length) as $i | select([frame($zones[$i]), $window] | transpose | all(.[0] - .[1] | fabs <= 2)) | $i) // null) as $current
-    | (if $current != null then $zones[$current]
-       else [($window[0] - $area[0]) / $area[2], ($window[1] - $area[1]) / $area[3], $window[2] / $area[2], $window[3] / $area[3]] end) as $from
+    def inside($outer): .[0] >= $outer[0] - 1e-6 and .[1] >= $outer[1] - 1e-6
+      and .[0] + .[2] <= $outer[0] + $outer[2] + 1e-6 and .[1] + .[3] <= $outer[1] + $outer[3] + 1e-6;
+    ($remembered | remembered) as $memo
+    | (if $memo != null and any($spec.layouts[]; . == $memo.zones) then $memo.zones else $spec.layouts[$spec.starred] end) as $zones
+    | (if $memo != null and $memo.zones == $zones and ($memo.span | type) == "array"
+         and ($memo.span | length == 2 and all(.[]; type == "number" and . >= 0 and . < ($zones | length)))
+         and fits(frame(span_zone($zones; $memo.span)); $window) then $memo.span
+       else first(range($zones | length) as $i | select(fits(frame($zones[$i]); $window)) | [$i, $i]) // null end) as $span
+    | (if $span == null then [($window[0] - $area[0]) / $area[2], ($window[1] - $area[1]) / $area[3], $window[2] / $area[2], $window[3] / $area[3]]
+       elif $mode == "grow" then $zones[$span[1]]
+       else span_zone($zones; $span) end) as $from
     | (if $dir == "left" or $dir == "right" then 0 else 1 end) as $axis
     | (if $dir == "right" or $dir == "down" then 1 else -1 end) as $sign
-    | [range($zones | length) | select(. != $current) | $zones[.] as $z
+    | [range($zones | length) as $i | $zones[$i] as $z
+       | select($span == null or ($z | inside($from) | not))
        | (($z | center($axis)) - ($from | center($axis))) * $sign as $ahead
        | select($ahead > 0.001 and overlap($z; $from; 1 - $axis) > 0.001)
-       | { zone: $z, rank: [$ahead, (($z | center(1 - $axis)) - ($from | center(1 - $axis)) | fabs)] }]
+       | { index: $i, rank: [$ahead, (($z | center(1 - $axis)) - ($from | center(1 - $axis)) | fabs)] }]
     | (min_by(.rank) // empty) as $next
-    | "\($next.zone | map(tostring) | join(" "))\n\($zones | tojson)"')
+    | (if $mode == "grow" and $span != null then [$span[0], $next.index] else [$next.index, $next.index] end) as $to
+    | "\(span_zone($zones; $to) | map(tostring) | join(" "))\n\($zones | tojson)\n\($to | tojson)"')
   [[ -n $target ]] || exit 0
-  { read -r zone_x zone_y zone_w zone_h; read -r layout; } <<<"$target"
+  { read -r zone_x zone_y zone_w zone_h; read -r layout; read -r span; } <<<"$target"
   mode=zone
+fi
+
+if [[ $mode == restore ]]; then
+  restore=$(jq -c --arg a "$address" '.[$a] // empty
+    | select((.box | type) == "array" and (.box | length) == 4 and all(.box[]; type == "number")
+      and (.floating | type) == "boolean" and (.fullscreen | IN(0, 1, 2)))' "$places" 2>/dev/null) || restore=""
+  [[ -n $restore ]] || exit 0
+  read -r x y width height was_floating was_fullscreen < <(jq -r '.box + [.floating, .fullscreen] | map(tostring) | join(" ")' <<<"$restore")
 fi
 
 # Placed in a zone of a layout from another zone of it: a window on the same layout
 # that fills the new zone takes the one this window leaves, unless swapping is off. It moves first, so focus
-# ends on this one.
+# ends on this one. Spans across zones never swap.
 # OMASIZER_SWAPPING marks the call that moves the other window: it never swaps
 # itself, or the two would hand the swap back and forth forever.
-if [[ $mode == zone && -n $layout && $swap_zones == true && -z ${OMASIZER_SWAPPING:-} ]]; then
+if [[ $mode == zone && -n $layout && $swap_zones == true && -z ${OMASIZER_SWAPPING:-} ]] \
+  && jq -en --argjson s "${span:-null}" '$s == null or $s[0] == $s[1]' >/dev/null; then
   memories=$(jq -c 'if type == "object" then . else {} end' "$memory" 2>/dev/null) || memories='{}'
   others=$(hyprctl clients -j | jq -c --arg a "$address" --argjson ws "$(jq '.workspace.id // null' <<<"$client")" '
     map(select(.address != $a and .workspace.id == $ws and .floating and .fullscreen == 0 and .mapped != false and .hidden != true))') || others='[]'
   swap=$(jq -rn "${frame_args[@]}" --argjson zones "$layout" --argjson zone "[$zone_x, $zone_y, $zone_w, $zone_h]" \
-    --argjson memories "${memories:-\{\}}" --argjson others "${others:-[]}" \
-    --argjson window "$(jq -c '[.at[0], .at[1], .size[0], .size[1]]' <<<"$client")" "$geometry"'
-    def fills($frame): [$frame, [.at[0], .at[1], .size[0], .size[1]]] | transpose | all(.[0] - .[1] | fabs <= 2);
-    (first($zones[] | select([frame(.), $window] | transpose | all(.[0] - .[1] | fabs <= 2))) // null) as $from
-    | select($from != null and ($from | map(. * 1e6 | round)) != ($zone | map(. * 1e6 | round)))
-    | first($others[] | select($memories[.address] == $zones)
+    --argjson memories "${memories:-\{\}}" --argjson others "${others:-[]}" --argjson window "$box" "$geometry"'
+    def fills($frame): fits($frame; [.at[0], .at[1], .size[0], .size[1]]);
+    (first(range($zones | length) as $i | select(fits(frame($zones[$i]); $window)) | $i) // null) as $from
+    | select($from != null and ($zones[$from] | map(. * 1e6 | round)) != ($zone | map(. * 1e6 | round)))
+    | first($others[] | select(($memories[.address] | remembered | .zones) == $zones)
         | select(fills(frame($zone; if any(.tags[]?; . == "omarchy-floating-workspace" or . == "omarchy-floating-workspace*") then $bar_height else 0 end))))
-    | "\(.address) \($from | map(tostring) | join(" "))"')
+    | "\(.address) \($from)"')
   if [[ -n $swap ]]; then
-    read -r swap_address swap_zone <<<"$swap"
-    OMASIZER_SWAPPING=1 "$0" --layout "$layout" --zone $swap_zone "$swap_address" || true
+    read -r swap_address swap_index <<<"$swap"
+    OMASIZER_SWAPPING=1 "$0" --layout "$layout" --span "$swap_index" "$swap_index" "$swap_address" || true
   fi
 fi
 
 if [[ $mode == zone ]]; then
   read -r x y width height < <(jq -rn "${frame_args[@]}" --argjson zone "[$zone_x, $zone_y, $zone_w, $zone_h]" \
     "$geometry"' frame($zone) | join(" ")')
-elif [[ $clamp == true ]]; then
+elif [[ $mode == size && $clamp == true ]]; then
   # Oversized presets shrink to fit the screen, like KSizer's ClampToArea.
   (( width > area_w )) && width=$area_w
   (( height > area_h )) && height=$area_h
@@ -201,6 +270,18 @@ hypr_dispatch() {
   hyprctl dispatch "$lua" >/dev/null 2>&1 || hyprctl dispatch "$@" >/dev/null
 }
 
+# Keep each record to windows that are still open, then set or drop this window's.
+# Written whole and renamed into place, so a run killed part-way leaves the old file.
+remember() {
+  local file=$1 value=$2 open
+  open=$(hyprctl clients -j | jq -c 'map(.address)') || open=null
+  { jq -c . "$file" 2>/dev/null || echo '{}'; } | jq -c --arg a "$address" --argjson v "$value" --argjson open "${open:-null}" '
+    (if type == "object" then . else {} end) | with_entries(select(.key as $k | $open == null or ($open | index($k))))
+    | if $v == null then del(.[$a]) else . + {($a): $v} end' >"$file.$$" \
+    && mv "$file.$$" "$file"
+}
+trap 'rm -f "$memory.$$" "$places.$$"' EXIT
+
 # The window moved aside by a swap keeps out of focus, so a quick second keypress
 # can't act on it; it is floating and not fullscreen, so nothing below needs focus.
 [[ -n ${OMASIZER_SWAPPING:-} ]] || hypr_dispatch "hl.dsp.focus({ window = \"$window\" })" focuswindow "$window"
@@ -210,6 +291,25 @@ case $fullscreen in
 1) hypr_dispatch "hl.dsp.window.fullscreen({ mode = \"maximized\", action = \"unset\", window = \"$window\" })" fullscreen 1 ;;
 2) hypr_dispatch "hl.dsp.window.fullscreen({ mode = \"fullscreen\", action = \"unset\", window = \"$window\" })" fullscreen 0 ;;
 esac
+
+if [[ $mode == restore ]]; then
+  # A window that was tiled goes back into the tiling, which places it; else it takes its old box.
+  if [[ $was_floating == true ]]; then
+    [[ $floating == true ]] || hypr_dispatch "hl.dsp.window.float({ window = \"$window\", action = \"enable\" })" setfloating "$window"
+    hypr_dispatch "hl.dsp.window.resize({ window = \"$window\", x = $width, y = $height })" resizewindowpixel exact "$width" "$height,$window"
+    hypr_dispatch "hl.dsp.window.move({ window = \"$window\", x = $x, y = $y })" movewindowpixel exact "$x" "$y,$window"
+  else
+    hypr_dispatch "hl.dsp.window.float({ window = \"$window\", action = \"disable\" })" settiled "$window"
+  fi
+  case $was_fullscreen in
+  1) hypr_dispatch "hl.dsp.window.fullscreen({ mode = \"maximized\", action = \"set\", window = \"$window\" })" fullscreen 1 ;;
+  2) hypr_dispatch "hl.dsp.window.fullscreen({ mode = \"fullscreen\", action = \"set\", window = \"$window\" })" fullscreen 0 ;;
+  esac
+  # Back where it started: nothing left to restore, and no layout to keep to.
+  remember "$places" null
+  remember "$memory" null
+  exit 0
+fi
 
 [[ $floating == true ]] || hypr_dispatch "hl.dsp.window.float({ window = \"$window\", action = \"enable\" })" setfloating "$window"
 
@@ -221,13 +321,20 @@ else
   hypr_dispatch "hl.dsp.window.move({ window = \"$window\", x = $x, y = $y })" movewindowpixel exact "$x" "$y,$window"
 fi
 
-# Remember the layout, keeping only windows that are still open. A preset size takes
-# the window out of its layout, so it forgets it and the arrows start from the starred one.
+# Note where the window was, unless it is still where OmaSizer last put it: then the
+# place noted before that stands. Where it is now is read back from Hyprland, which
+# also covers a centered preset.
+placed=$(hyprctl clients -j | jq -c --arg a "$address" 'first(.[] | select(.address == $a) | [.at[0], .at[1], .size[0], .size[1]]) // null') || placed=null
+previous=$(jq -c --arg a "$address" '.[$a] // null' "$places" 2>/dev/null) || previous=null
+remember "$places" "$(jq -cn --argjson previous "${previous:-null}" --argjson box "$box" --argjson placed "${placed:-null}" \
+  --argjson floating "$floating" --argjson fullscreen "$fullscreen" '
+  (if ($previous | type) == "object" and ($previous.placed | type) == "array" and ($previous.placed | length) == 4
+     and $fullscreen == 0 and $floating and ([$previous.placed, $box] | transpose | all(.[0] - .[1] | fabs <= 2))
+   then $previous | del(.placed)
+   else { box: $box, floating: $floating, fullscreen: $fullscreen } end) + { placed: ($placed // $box) }')"
+
+# Remember the layout and span. A preset size takes the window out of its layout, so it
+# forgets it and the arrows start from the starred one.
 if [[ -n $layout || $mode == size ]]; then
-  open_windows=$(hyprctl clients -j | jq -c 'map(.address)') || open_windows=null
-  trap 'rm -f "$memory.$$"' EXIT
-  { jq -c . "$memory" 2>/dev/null || echo '{}'; } | jq -c --arg a "$address" --argjson l "${layout:-null}" --argjson open "$open_windows" '
-    (if type == "object" then . else {} end) | with_entries(select(.key as $k | $open == null or ($open | index($k))))
-    | if $l == null then del(.[$a]) else . + {($a): $l} end' >"$memory.$$" \
-    && mv "$memory.$$" "$memory"
+  remember "$memory" "$(jq -cn --argjson l "${layout:-null}" --argjson s "${span:-null}" 'if $l == null then null else { zones: $l, span: $s } end')"
 fi

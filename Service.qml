@@ -26,6 +26,10 @@ Item {
   property string blockedMove: ""
   property string blockedMoveBy: ""
   property string notifiedMove: ""
+  // The same for the grow keys: the arrow keys' modifiers with Shift.
+  property string blockedGrow: ""
+  property string blockedGrowBy: ""
+  property string notifiedGrow: ""
   property bool registerAgain: false
   // A config reload dropped every bind, so the hook's record of them is cleared on the next load.
   property bool reloaded: false
@@ -42,6 +46,11 @@ Item {
 
   function moveConflictFor(modifiers) {
     return Presets.moveConflict(root.binds, modifiers)
+  }
+
+  // What already uses an arrow with `moveKeys` and Shift, the keys that grow a window, or null.
+  function growConflictFor(moveKeys) {
+    return Presets.moveConflict(root.binds, Presets.growKeys(moveKeys))
   }
 
   function refreshBinds() {
@@ -87,12 +96,27 @@ Item {
         wantedMove + " + arrows are already used by “" + moveHolder + "”. Choose other keys in OmaSizer's settings."])
     }
 
+    // Growing needs the arrows: with those blocked, it stays off too, and only they are reported.
+    var wantedGrow = moveHolder ? "" : Presets.growKeys(wantedMove)
+    var growHolder = wantedGrow ? Presets.moveConflict(root.binds, wantedGrow) : null
+    root.blockedGrow = growHolder ? wantedGrow : ""
+    root.blockedGrowBy = growHolder || ""
+
+    if (growHolder && root.notifiedGrow !== wantedGrow) {
+      root.notifiedGrow = wantedGrow
+      Quickshell.execDetached(["omarchy-notification-send", "-g", "\u{F030C}",
+        "OmaSizer grow keys not set",
+        wantedGrow + " + arrows are already used by “" + growHolder + "”. Moving between zones still works."])
+    }
+
     // These values go into Lua source, so each must be exactly the safe form checked here.
     var hook = root.hookPath
     var shortcut = holder ? "" : wanted
     var move = moveHolder ? "" : wantedMove
+    var grow = growHolder ? "" : wantedGrow
     if (!/^[A-Za-z0-9_\/.\-]+$/.test(hook) || (shortcut !== "" && Presets.normalizeShortcut(shortcut) !== shortcut)
-        || (move !== "" && Presets.normalizeModifiers(move) !== move)) {
+        || (move !== "" && Presets.normalizeModifiers(move) !== move)
+        || (grow !== "" && Presets.normalizeModifiers(grow) !== grow)) {
       console.warn("omasizer: refusing to load the Hyprland hook from", hook)
       return
     }
@@ -100,7 +124,7 @@ Item {
     var reset = root.reloaded ? "omasizer_state = nil omasizer_mouse = nil " : ""
     root.reloaded = false
     hookLoader.command = ["timeout", "-k", "1", "2", "hyprctl", "eval", reset + "omasizer_unload = nil omasizer_owner = \"" + root.owner + "\" omasizer_shortcut = \"" + shortcut
-      + "\" omasizer_clicks = " + clicks + " omasizer_move = \"" + move + "\" dofile(\"" + hook + "\")"]
+      + "\" omasizer_clicks = " + clicks + " omasizer_move = \"" + move + "\" omasizer_grow = \"" + grow + "\" dofile(\"" + hook + "\")"]
     hookLoader.running = true
   }
 

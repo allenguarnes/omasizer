@@ -47,6 +47,7 @@ var DEFAULT_SHORTCUT = "SUPER + ALT + Z"
 // Marks OmaSizer's own bindings in `hyprctl binds`; hypr/omasizer.lua uses the same text.
 var BIND_DESCRIPTION = "OmaSizer: open the menu"
 var MOVE_DESCRIPTION = "OmaSizer: move between zones"
+var GROW_DESCRIPTION = "OmaSizer: grow across zones"
 // The modifiers that, with an arrow key, move the focused window to the next zone
 // of its layout: "" for none. The service binds all four arrows with them.
 var DEFAULT_MOVE_KEYS = "SUPER + CTRL + ALT"
@@ -74,6 +75,14 @@ function normalizeModifiers(value) {
   return combo ? combo.slice(0, -" + LEFT".length) : null
 }
 
+// The modifiers that, with an arrow key, grow the focused window across zones: the
+// move keys with Shift added, or "" when the move keys are off or already hold Shift.
+function growKeys(moveKeys) {
+  var keys = normalizeModifiers(moveKeys)
+  if (!keys || keys.split(" + ").indexOf("SHIFT") >= 0) return ""
+  return normalizeModifiers(keys + " + SHIFT")
+}
+
 // What already uses one of the four arrows with `modifiers`, or null when all are free.
 function moveConflict(binds, modifiers) {
   for (var i = 0; modifiers && i < ARROWS.length; i++) {
@@ -83,11 +92,14 @@ function moveConflict(binds, modifiers) {
   return null
 }
 
-// Whether `shortcut` is one of the arrows OmaSizer binds with `moveKeys`: both would be bound,
-// and changing either later would unbind the other.
+// Whether `shortcut` is one of the arrows OmaSizer binds with `moveKeys`, or with them and
+// Shift to grow: both would be bound, and changing either later would unbind the other.
 function ownConflict(shortcut, moveKeys) {
   var combo = normalizeShortcut(shortcut)
-  return !!combo && !!moveKeys && ARROWS.some(function(a) { return combo === moveKeys + " + " + a })
+  var grow = growKeys(moveKeys)
+  return !!combo && !!moveKeys && ARROWS.some(function(a) {
+    return combo === moveKeys + " + " + a || (!!grow && combo === grow + " + " + a)
+  })
 }
 
 // What already uses `shortcut` among `hyprctl -j binds`, as a short description, or
@@ -100,7 +112,8 @@ function bindConflict(binds, shortcut) {
   var mask = parts.reduce(function(sum, m) { return sum + MODIFIER_MASKS[m] }, 0)
   for (var i = 0; i < binds.length; i++) {
     var b = binds[i] || {}
-    if (b.mouse || b.submap || b.description === BIND_DESCRIPTION || b.description === MOVE_DESCRIPTION) continue
+    if (b.mouse || b.submap || b.description === BIND_DESCRIPTION || b.description === MOVE_DESCRIPTION
+        || b.description === GROW_DESCRIPTION) continue
     if (Number(b.modmask) === mask && String(b.key).toUpperCase() === key)
       return String(b.description || [b.dispatcher, b.arg].filter(Boolean).join(" ") || "another shortcut").slice(0, 80)
   }
@@ -183,6 +196,21 @@ function moveItem(list, from, to) {
 
 function defaultLayouts() {
   return sanitizeLayouts(DEFAULT_LAYOUTS)
+}
+
+// The smallest zone holding zones `first` and `last` of `zones`: what a span across them fills.
+function spanZone(zones, first, last) {
+  var a = zones[first], b = zones[last]
+  if (!a || !b) return null
+  var x = Math.min(a[0], b[0]), y = Math.min(a[1], b[1])
+  return [x, y, Math.max(a[0] + a[2], b[0] + b[2]) - x, Math.max(a[1] + a[3], b[1] + b[3]) - y]
+}
+
+// Whether `zone` lies inside `outer`, give or take rounding.
+function zoneInside(zone, outer) {
+  var e = 1e-6
+  return !!zone && !!outer && zone[0] >= outer[0] - e && zone[1] >= outer[1] - e
+    && zone[0] + zone[2] <= outer[0] + outer[2] + e && zone[1] + zone[3] <= outer[1] + outer[3] + e
 }
 
 // Zone editing. Edges snap to a grid of 24ths, which holds halves, thirds, quarters,

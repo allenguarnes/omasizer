@@ -56,5 +56,9 @@
   "settings.moveDefault": "Použiť Super + Ctrl + Alt",
   "settings.moveTaken": "Šípku s týmito klávesmi už používa „%1“. OmaSizer ich nechá tak; vyberte iné klávesy.",
   "settings.moveHint": "Presunie aktívne okno do ďalšej zóny rozloženia, z ktorého bolo umiestnené, alebo rozloženia s hviezdičkou. Kliknite do poľa, podržte modifikátory a pustite; Backspace to vypne.",
-  "settings.swap": "Vymeniť s oknom, ktoré už je v zóne"
+  "settings.swap": "Vymeniť s oknom, ktoré už je v zóne",
+  "restore": "Obnoviť",
+  "spanHint": "Ťahaním alebo Shift + šípkami roztiahnete cez zóny",
+  "settings.growHint": "Pridajte Shift a okno sa roztiahne cez zóny, alebo sa znova zmenší.",
+  "settings.growTaken": "Šípky so Shiftom už používa „%1“, takže rozťahovanie cez zóny je vypnuté."
 }

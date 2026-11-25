@@ -56,5 +56,9 @@
   "settings.moveDefault": "Gunakan Super + Ctrl + Alt",
   "settings.moveTaken": "Panah dengan tombol ini sudah digunakan oleh “%1”. OmaSizer membiarkannya; pilih tombol lain.",
   "settings.moveHint": "Memindahkan jendela yang difokuskan ke zona berikutnya pada tata letak asalnya, atau pada tata letak berbintang. Klik kolom, tahan tombol pengubah lalu lepaskan; Backspace menonaktifkannya.",
-  "settings.swap": "Tukar dengan jendela yang sudah ada di zona"
+  "settings.swap": "Tukar dengan jendela yang sudah ada di zona",
+  "restore": "Pulihkan",
+  "spanHint": "Seret atau Shift + panah untuk merentang zona",
+  "settings.growHint": "Tambahkan Shift untuk memperbesar jendela melintasi zona, atau mengecilkannya kembali.",
+  "settings.growTaken": "Panah dengan Shift sudah dipakai oleh “%1”, jadi memperbesar melintasi zona dimatikan."
 }

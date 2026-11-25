@@ -56,5 +56,9 @@
   "settings.moveDefault": "使用 Super + Ctrl + Alt",
   "settings.moveTaken": "搭配這些鍵的方向鍵已被「%1」使用。OmaSizer 不會更動它們，請另選按鍵。",
   "settings.moveHint": "將目前視窗移到其所屬配置（或加星號配置）的下一個區域。點一下欄位，按住輔助鍵後放開；按 Backspace 可關閉。",
-  "settings.swap": "與區域中已有的視窗交換"
+  "settings.swap": "與區域中已有的視窗交換",
+  "restore": "還原",
+  "spanHint": "拖曳或 Shift + 方向鍵以橫跨多個區域",
+  "settings.growHint": "加上 Shift 可將視窗擴展到多個區域，或再縮回。",
+  "settings.growTaken": "帶 Shift 的方向鍵已被「%1」使用，因此跨區域擴展已關閉。"
 }

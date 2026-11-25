@@ -56,5 +56,9 @@
   "settings.moveDefault": "Tumia Super + Ctrl + Alt",
   "settings.moveTaken": "Mshale pamoja na vitufe hivi tayari unatumiwa na “%1”. OmaSizer haivigusi; chagua vitufe vingine.",
   "settings.moveHint": "Husogeza dirisha lililo hai hadi kanda inayofuata ya mpangilio lilikowekwa, au ya mpangilio wenye nyota. Bofya sehemu hii, shikilia vitufe vya kurekebisha kisha achilia; Backspace huizima.",
-  "settings.swap": "Badilishana na dirisha lililo tayari kwenye kanda"
+  "settings.swap": "Badilishana na dirisha lililo tayari kwenye kanda",
+  "restore": "Rejesha",
+  "spanHint": "Buruta au Shift + mishale ili kuenea kwenye kanda",
+  "settings.growHint": "Ongeza Shift ili kupanua dirisha kwenye kanda, au kulipunguza tena.",
+  "settings.growTaken": "Mishale pamoja na Shift tayari inatumiwa na “%1”, kwa hivyo kupanua kwenye kanda kumezimwa."
 }

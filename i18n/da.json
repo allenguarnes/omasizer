@@ -56,5 +56,9 @@
   "settings.moveDefault": "Brug Super + Ctrl + Alt",
   "settings.moveTaken": "En pil med disse bruges allerede af »%1«. OmaSizer lader dem være; vælg andre taster.",
   "settings.moveHint": "Flytter det fokuserede vindue til næste zone i det layout, det blev placeret fra, eller i favoritlayoutet. Klik i feltet, hold modifikatortasterne, og slip; Backspace slår det fra.",
-  "settings.swap": "Byt med et vindue, der allerede er i zonen"
+  "settings.swap": "Byt med et vindue, der allerede er i zonen",
+  "restore": "Gendan",
+  "spanHint": "Træk eller Shift + pile for at strække over zoner",
+  "settings.growHint": "Tilføj Shift for at udvide vinduet over zoner eller gøre det mindre igen.",
+  "settings.growTaken": "Pilene med Shift bruges allerede af »%1«, så udvidelse over zoner er slået fra."
 }

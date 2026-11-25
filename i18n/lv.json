@@ -56,5 +56,9 @@
   "settings.moveDefault": "Izmantot Super + Ctrl + Alt",
   "settings.moveTaken": "Bultiņu ar šiem jau izmanto „%1”. OmaSizer tos neaiztiek; izvēlies citus taustiņus.",
   "settings.moveHint": "Pārvieto aktīvo logu uz nākamo zonu izkārtojumā, no kura tas tika novietots, vai izkārtojumā ar zvaigzni. Noklikšķini laukā, turi modifikatorus un atlaid; Backspace to izslēdz.",
-  "settings.swap": "Samainīt ar logu, kas jau ir zonā"
+  "settings.swap": "Samainīt ar logu, kas jau ir zonā",
+  "restore": "Atjaunot",
+  "spanHint": "Velciet vai Shift + bultiņas, lai aptvertu vairākas zonas",
+  "settings.growHint": "Pievienojiet Shift, lai paplašinātu logu pāri zonām vai atkal to samazinātu.",
+  "settings.growTaken": "Bultiņas ar Shift jau izmanto „%1”, tāpēc paplašināšana pāri zonām ir izslēgta."
 }

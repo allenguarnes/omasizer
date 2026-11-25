@@ -56,5 +56,9 @@
   "settings.moveDefault": "Bruk Super + Ctrl + Alt",
   "settings.moveTaken": "En pil med disse er allerede brukt av «%1». OmaSizer lar dem være; velg andre taster.",
   "settings.moveHint": "Flytter det fokuserte vinduet til neste sone i oppsettet det ble plassert fra, eller i det stjernemerkede oppsettet. Klikk feltet, hold modifikatorene og slipp; Backspace slår det av.",
-  "settings.swap": "Bytt med et vindu som allerede er i sonen"
+  "settings.swap": "Bytt med et vindu som allerede er i sonen",
+  "restore": "Gjenopprett",
+  "spanHint": "Dra eller Shift + piler for å strekke over soner",
+  "settings.growHint": "Legg til Shift for å utvide vinduet over soner, eller krympe det igjen.",
+  "settings.growTaken": "Pilene med Shift brukes allerede av «%1», så utvidelse over soner er slått av."
 }

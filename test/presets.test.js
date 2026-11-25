@@ -131,3 +131,25 @@ assert.strictEqual(ctx.ownConflict("SUPER + ALT + LEFT", "SUPER + CTRL + ALT"), 
 assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + LEFT", ""), false)
 
 console.log("ok")
+
+// Growing uses the move keys with Shift; none when they are off or already hold Shift.
+assert.strictEqual(ctx.growKeys("SUPER + CTRL + ALT"), "SUPER + CTRL + ALT + SHIFT")
+assert.strictEqual(ctx.growKeys("ctrl+super"), "SUPER + CTRL + SHIFT")
+assert.strictEqual(ctx.growKeys("SUPER + SHIFT"), "")
+assert.strictEqual(ctx.growKeys(""), "")
+// The menu shortcut can't be one of the grow keys either, and OmaSizer's own grow binds never conflict.
+assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + SHIFT + LEFT", "SUPER + CTRL + ALT"), true)
+assert.strictEqual(ctx.ownConflict("SUPER + CTRL + ALT + SHIFT + LEFT", ""), false)
+assert.strictEqual(ctx.ownConflict("SUPER + ALT + Z", "SUPER + CTRL + ALT"), false)
+const growBinds = [{ modmask: 77, key: "LEFT", description: "OmaSizer: grow across zones" }, { modmask: 77, key: "UP", description: "Something" }]
+assert.strictEqual(ctx.moveConflict(growBinds, ctx.growKeys("SUPER + CTRL + ALT")), "Something")
+assert.strictEqual(ctx.moveConflict(growBinds.slice(0, 1), ctx.growKeys("SUPER + CTRL + ALT")), null)
+
+// A span fills the smallest box holding its first and last zone, in either order.
+const quads = [[0, 0, 0.5, 0.5], [0.5, 0, 0.5, 0.5], [0, 0.5, 0.5, 0.5], [0.5, 0.5, 0.5, 0.5]]
+assert.deepStrictEqual(plain(ctx.spanZone(quads, 0, 1)), [0, 0, 1, 0.5])
+assert.deepStrictEqual(plain(ctx.spanZone(quads, 3, 0)), [0, 0, 1, 1])
+assert.deepStrictEqual(plain(ctx.spanZone(quads, 2, 2)), [0, 0.5, 0.5, 0.5])
+assert.strictEqual(ctx.spanZone(quads, 0, 4), null)
+assert.strictEqual(ctx.zoneInside(quads[1], ctx.spanZone(quads, 0, 1)), true)
+assert.strictEqual(ctx.zoneInside(quads[2], ctx.spanZone(quads, 0, 1)), false)

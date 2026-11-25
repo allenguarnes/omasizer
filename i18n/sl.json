@@ -56,5 +56,9 @@
   "settings.moveDefault": "Uporabi Super + Ctrl + Alt",
   "settings.moveTaken": "Puščico s temi tipkami že uporablja „%1“. OmaSizer jih ne spreminja; izberite druge tipke.",
   "settings.moveHint": "Premakne aktivno okno v naslednje območje postavitve, iz katere je bilo postavljeno, ali postavitve z zvezdico. Kliknite polje, držite spremenilne tipke in jih spustite; Backspace to izklopi.",
-  "settings.swap": "Zamenjaj z oknom, ki je že v območju"
+  "settings.swap": "Zamenjaj z oknom, ki je že v območju",
+  "restore": "Obnovi",
+  "spanHint": "Povlecite ali Shift + puščice za razpon čez cone",
+  "settings.growHint": "Dodajte Shift, da okno razširite čez cone ali ga znova skrčite.",
+  "settings.growTaken": "Puščice s Shiftom že uporablja „%1“, zato je širjenje čez cone izklopljeno."
 }

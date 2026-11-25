@@ -56,5 +56,9 @@
   "settings.moveDefault": "Use Super + Ctrl + Alt",
   "settings.moveTaken": "An arrow with these is already used by “%1”. OmaSizer leaves them alone; pick other keys.",
   "settings.moveHint": "Moves the focused window to the next zone of the layout it was placed from, or of the starred layout. Click the field, hold the modifiers and let go; Backspace turns it off.",
-  "settings.swap": "Swap with a window already in the zone"
+  "settings.swap": "Swap with a window already in the zone",
+  "restore": "Restore",
+  "spanHint": "Drag or Shift + arrows to span zones",
+  "settings.growHint": "Add Shift to grow the window across zones, or shrink it back.",
+  "settings.growTaken": "With Shift, the arrows are already used by “%1”, so growing across zones is off."
 }
